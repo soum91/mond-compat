@@ -18,11 +18,11 @@
         {
           "version": "3.0.1",
           "buildVersion": "2",
-          "date": "2026-11-08T22:48:21Z",
+          "date": "2026-11-08T22:51:42Z",
           "localizedDescription": "Initial compatibility build for iOS 27.0.1 diagnostics and App Group signing checks.",
           "changelog": "Recognize iOS 27.0.1; correct worse_query error-code mapping; show App Group accessibility and configurable identifier; use independent bundle ID and record installed version/build.",
           "downloadURL": "https://github.com/soum91/mond-compat/releases/download/development/mond.ipa",
-          "size": 3421345,
+          "size": 3421347,
           "minOSVersion": "17.0"
         }
       ]
