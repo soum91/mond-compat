@@ -1,0 +1,31 @@
+{
+  "name": "mond-compat",
+  "identifier": "com.soum91.mondcompat.source",
+  "subtitle": "MobileGestalt editor with iOS 27.0.1 diagnostics",
+  "description": "Unsigned compatibility build based on rooootdev/mond. Signing must preserve a registered App Group in the provisioning profile. Compatibility claims are not proof of exploit success.",
+  "sourceURL": "https://raw.githubusercontent.com/soum91/mond-compat/main/repo.json",
+  "iconURL": "https://raw.githubusercontent.com/soum91/mond-compat/main/mond.png",
+  "apps": [
+    {
+      "name": "mond-compat",
+      "bundleIdentifier": "com.soum91.mondcompat",
+      "developerName": "soum91 (based on rooootdev)",
+      "subtitle": "worse_query App Group diagnostics",
+      "localizedDescription": "MobileGestalt, PosterBoard and HouseArrest tooling with clearer worse_query errors and a configurable signing App Group. An authorized App Group is required; do not apply tweaks when access checks fail.",
+      "category": "utilities",
+      "iconURL": "https://raw.githubusercontent.com/soum91/mond-compat/main/mond.png",
+      "versions": [
+        {
+          "version": "3.0.1",
+          "buildVersion": "2",
+          "date": "2026-11-08T22:48:21Z",
+          "localizedDescription": "Initial compatibility build for iOS 27.0.1 diagnostics and App Group signing checks.",
+          "changelog": "Recognize iOS 27.0.1; correct worse_query error-code mapping; show App Group accessibility and configurable identifier; use independent bundle ID and record installed version/build.",
+          "downloadURL": "https://github.com/soum91/mond-compat/releases/download/development/mond.ipa",
+          "size": 3421345,
+          "minOSVersion": "17.0"
+        }
+      ]
+    }
+  ]
+}
