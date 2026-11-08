@@ -503,7 +503,10 @@ func mg_load() {
             let cache_extra = loaded_dict["CacheExtra"] as? NSMutableDictionary ?? NSMutableDictionary()
             let artwork = cache_extra["oPeik/9e8lQWMszEjbPzng"] as? NSMutableDictionary ?? NSMutableDictionary()
 
-            let new_selected_st = st_to_sel[artwork["ArtworkDeviceSubType"] as? Int ?? og_subtype] ?? "og"
+            let current_subtype = artwork["ArtworkDeviceSubType"] as? Int ?? og_subtype
+            // Several models share artwork subtype values. Never mistake the original
+            // model for an intentional spoof merely because a picker value matches.
+            let new_selected_st = current_subtype == og_subtype ? "og" : (st_to_sel[current_subtype] ?? "og")
             let new_device_name = artwork["ArtworkDeviceProductDescription"] as? String ?? og_device_name
             let new_enable_device_name = new_device_name != og_device_name
 
@@ -585,6 +588,59 @@ func mg_reload() {
     guard let data = try? Data(contentsOf: URL(fileURLWithPath: TweakPaths.gestalt)),
           let dict = try? PropertyListSerialization.propertyList(from: data, format: nil) as? NSMutableDictionary else { return }
     mg_dict_now = dict
+}
+
+/// A deliberately read-only probe. In particular, this function does not call
+/// `mg_load` (which creates a backup), `mg_write`, or any exploit function.
+func mg_read_only_report() -> [String] {
+    let path = URL(fileURLWithPath: TweakPaths.gestalt)
+    var lines = ["MobileGestalt read-only diagnostic"]
+    lines.append("iOS: \(UIDevice.current.systemVersion); device: \(machine_name())")
+
+    do {
+        let data = try Data(contentsOf: path)
+        lines.append("File readable: yes (\(data.count) bytes)")
+        guard !data.isEmpty else {
+            lines.append("Structure: invalid, file is empty")
+            return lines
+        }
+
+        let plist = try PropertyListSerialization.propertyList(from: data, format: nil)
+        guard let dict = plist as? [String: Any] else {
+            lines.append("Structure: invalid, root is not a dictionary")
+            return lines
+        }
+
+        let extra = dict["CacheExtra"] as? [String: Any]
+        let artwork = extra?["oPeik/9e8lQWMszEjbPzng"] as? [String: Any]
+        lines.append("Property list: valid")
+        lines.append("CacheExtra: \(extra == nil ? "missing" : "present")")
+        lines.append("CacheData: \((dict["CacheData"] as? Data)?.count ?? 0) bytes")
+        if let subtype = artwork?["ArtworkDeviceSubType"] as? Int {
+            lines.append("Current artwork subtype: \(subtype)")
+        } else {
+            lines.append("Artwork subtype: unavailable")
+        }
+
+        let backup = URL(fileURLWithPath: AppPaths.backups).appendingPathComponent("SavedGestalt.plist")
+        if let original = try? Data(contentsOf: backup),
+           let saved = try? PropertyListSerialization.propertyList(from: original, format: nil),
+           let savedDict = saved as? [String: Any] {
+            let savedExtra = savedDict["CacheExtra"] as? [String: Any]
+            let savedArtwork = savedExtra?["oPeik/9e8lQWMszEjbPzng"] as? [String: Any]
+            if let subtype = savedArtwork?["ArtworkDeviceSubType"] as? Int {
+                lines.append("Saved original subtype: \(subtype)")
+            }
+            lines.append("Backup readable: yes")
+        } else {
+            lines.append("Backup readable: no")
+        }
+    } catch {
+        lines.append("Read/parse failed: \(error.localizedDescription)")
+    }
+
+    lines.append("This is not a write-permission or safe-patching test.")
+    return lines
 }
 
 private enum mg_write_err: Error {

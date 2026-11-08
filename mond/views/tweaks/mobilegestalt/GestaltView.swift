@@ -54,6 +54,18 @@ struct GestaltView: View {
     @State private var mg_device_name: String = ""
     @State private var product_type: String = ""
     @State private var tweak_version: Int = 0
+    @State private var checkingReadOnlyAccess = false
+    @State private var readOnlyReport: [String] = []
+
+    private var originalDeviceLabel: String {
+        switch machine_name() {
+        case "iPhone18,3": return "iPhone 17"
+        case "iPhone18,1": return "iPhone 17 Pro"
+        case "iPhone18,2": return "iPhone 17 Pro Max"
+        case "iPhone18,4": return "iPhone Air"
+        default: return "This device"
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -72,6 +84,42 @@ struct GestaltView: View {
                     } footer: {
                         Text("Rebooting now might cause a bootloop. Try pressing 'Revert Tweaks'. If the warnings dont go away after that, you're fucked.")
                     }
+                }
+
+                Section {
+                    Button {
+                        checkingReadOnlyAccess = true
+                        DispatchQueue.global(qos: .userInitiated).async {
+                            let report = mg_read_only_report()
+                            DispatchQueue.main.async {
+                                readOnlyReport = report
+                                checkingReadOnlyAccess = false
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text("Check MobileGestalt Access")
+                            Spacer()
+                            if checkingReadOnlyAccess { ProgressView() }
+                        }
+                    }
+                    .disabled(checkingReadOnlyAccess)
+
+                    if !readOnlyReport.isEmpty {
+                        ForEach(readOnlyReport, id: \.self) { line in
+                            Text(line)
+                                .font(.footnote)
+                                .textSelection(.enabled)
+                        }
+
+                        Button("Copy Diagnostic") {
+                            UIPasteboard.general.string = readOnlyReport.joined(separator: "\n")
+                        }
+                    }
+                } header: {
+                    Label("Read-Only Diagnostic", systemImage: "checkmark.shield")
+                } footer: {
+                    Text("Reads the current cache and checks its structure. Does not modify MobileGestalt, grant write access, or guarantee that tweaks can be safely applied.")
                 }
 
                 Section {
@@ -101,7 +149,7 @@ struct GestaltView: View {
 
                 Section {
                     Picker(selection: $selected_st) {
-                        Text("Original (\(og_st))").tag("og")
+                        Text("Original: \(originalDeviceLabel) (\(og_st))").tag("og")
 
                         if is_device_good() {
                             Text("Disable Dynamic Island").tag("no_dynamic_island")
@@ -220,11 +268,26 @@ struct GestaltView: View {
                         TweakToggle(title: "Stage Manager Support")
                     }
 
-                    TweakToggle(title: "Enable iPadOS Mode")
-                        .disabled({
-                            let cache_extra = mg_dict_now["CacheExtra"] as? [String: Any]
-                            return cache_extra?["+3Uf0Pm5F8Xy7Onyvko0vA"] as? String != "iPhone"
-                        }())
+                    if let reason = tweak("Enable iPadOS Mode")?.can_apply(mg_dict_now) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text("Enable iPadOS Mode")
+                                Spacer()
+                                Text("Unsupported")
+                                    .foregroundStyle(.secondary)
+                            }
+                            Text(reason)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                    } else {
+                        TweakToggle(title: "Enable iPadOS Mode")
+                            .disabled({
+                                let cache_extra = mg_dict_now["CacheExtra"] as? [String: Any]
+                                return cache_extra?["+3Uf0Pm5F8Xy7Onyvko0vA"] as? String != "iPhone"
+                            }())
+                    }
                 } header: {
                     Label("iPadOS Features", systemImage: "ipad")
                 }

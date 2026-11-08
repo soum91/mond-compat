@@ -28,6 +28,9 @@ This is an independently maintained compatibility fork of [rooootdev/mond](https
 
 - The iOS check recognizes iOS 26.0 through 26.7.2 and iOS 27.0 through 27.2, matching `worse_query`'s published range. Exact devices and builds are not all verified.
 - The app displays the real error codes from `worse_query` instead of wrongly reporting App Group error `-1` as a missing system function.
+- MobileGestalt now offers **Check MobileGestalt Access**, a read-only check of the current cache and saved original. It does not change device files, test write permissions, or establish that applying any tweak is safe.
+- Unsupported iPadOS Mode binary patches are shown as unavailable if their CacheData offset cannot be found. **Do not bypass this check**, since the upstream code warns of boot loops and other instability.
+- The artwork subtype picker identifies the original iPhone 17 family model without mistaking an original subtype that shares a value with another model for a spoof.
 - Settings shows whether the configured App Group is accessible. The default for this fork is `group.com.soum91.mondcompat`.
 - The bundle identifier is `com.soum91.mondcompat`, allowing this fork to coexist with upstream mond.
 
