@@ -1,8 +1,8 @@
 {
   "name": "mond-compat",
   "identifier": "com.soum91.mondcompat.source",
-  "subtitle": "Read-only MobileGestalt diagnostics and iOS 27.0.1 compatibility",
-  "description": "Unsigned mond compatibility build with read-only MobileGestalt checks, corrected artwork subtype display, App Group diagnostics and guarded unsupported iPadOS binary patches. A valid signing App Group remains required.",
+  "subtitle": "Experimental iPadOS Mode locator and iOS 27.0.1 diagnostics",
+  "description": "Unsigned mond compatibility build with read-only MobileGestalt checks and an experimental, validated CacheData locator for iPadOS Mode on iOS 27.0.1. The firmware-specific iPadOS feature is unverified and can bootloop; a compatible App Group is required.",
   "sourceURL": "https://raw.githubusercontent.com/soum91/mond-compat/main/repo.json",
   "iconURL": "https://raw.githubusercontent.com/soum91/mond-compat/main/mond.png",
   "apps": [
@@ -10,19 +10,19 @@
       "name": "mond-compat",
       "bundleIdentifier": "com.soum91.mondcompat",
       "developerName": "soum91 (based on rooootdev)",
-      "subtitle": "Read-only MobileGestalt access check",
-      "localizedDescription": "MobileGestalt, PosterBoard and HouseArrest tooling with App Group diagnostics, safe read-only MobileGestalt verification and clearer unsupported tweak handling. Signing requires an authorized App Group.",
+      "subtitle": "Experimental iPadOS Mode on 27.0.1",
+      "localizedDescription": "Adds an opt-in iPadOS Mode locator based on Nugget's CacheData pattern with strict validation, original backup checks, and a separate high-risk confirmation. This feature has not been validated on an actual iPhone 17 / iOS 27.0.1 and may cause boot loops.",
       "category": "utilities",
       "iconURL": "https://raw.githubusercontent.com/soum91/mond-compat/main/mond.png",
       "versions": [
         {
-          "version": "3.0.2",
-          "buildVersion": "3",
-          "date": "2026-11-08T23:17:11Z",
-          "localizedDescription": "Read-only verification of MobileGestalt access and safe iPhone 17 original subtype handling.",
-          "changelog": "Added Check MobileGestalt Access and Copy Diagnostic; fixed original iPhone 17 subtype being shown as iPhone 16 Pro; explain unsupported iPadOS Mode CacheData offset without applying a dangerous patch.",
+          "version": "3.0.3",
+          "buildVersion": "4",
+          "date": "2026-11-08T23:29:23Z",
+          "localizedDescription": "Experimental iOS 27.0.1 iPadOS Mode locator with additional validation and warning.",
+          "changelog": "Experimental iPadOS Mode fallback for changed CacheData layout, unique candidate and neighboring-marker validation, backup requirement, confirm-before-apply prompt, and diagnostic showing candidate method. Does not claim successful iPadOS Mode on real hardware.",
           "downloadURL": "https://github.com/soum91/mond-compat/releases/download/development/mond.ipa",
-          "size": 3437659,
+          "size": 3444057,
           "minOSVersion": "17.0"
         }
       ]
