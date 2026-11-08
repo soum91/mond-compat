@@ -1,0 +1,24 @@
+{
+  "originHash" : "f405495752781aafe2cdaf65b2dfd5042e6338fe3a6dba00ec4cffa4e7b71211",
+  "pins" : [
+    {
+      "identity" : "partyui",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/jailbreakdotparty/PartyUI",
+      "state" : {
+        "revision" : "830eaac8ebf8a4cbcec08d49e8746033574d1903",
+        "version" : "1.2.0"
+      }
+    },
+    {
+      "identity" : "zipfoundation",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/weichsel/ZIPFoundation.git",
+      "state" : {
+        "revision" : "22787ffb59de99e5dc1fbfe80b19c97a904ad48d",
+        "version" : "0.9.20"
+      }
+    }
+  ],
+  "version" : 3
+}
