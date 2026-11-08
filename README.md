@@ -30,6 +30,7 @@ This is an independently maintained compatibility fork of [rooootdev/mond](https
 - The app displays the real error codes from `worse_query` instead of wrongly reporting App Group error `-1` as a missing system function.
 - MobileGestalt now offers **Check MobileGestalt Access**, a read-only check of the current cache and saved original. It does not change device files, test write permissions, or establish that applying any tweak is safe.
 - Unsupported iPadOS Mode binary patches are shown as unavailable if their CacheData offset cannot be found. **Do not bypass this check**, since the upstream code warns of boot loops and other instability.
+- **Experimental iPadOS Mode on 27.0.1:** The app can look for `DeviceClassNumber` using Nugget's CacheData structural pattern if the system-library lookup fails. The result must be unique, in bounds, and structurally valid. The original backup is checked, and an explicit warning appears before applying. If any check fails, the toggle remains unavailable. This pathway is untested on an actual iPhone 17 / iOS 27.0.1 and carries boot-loop and audio-failure risks. Nugget itself does not claim iOS 27 compatibility.
 - The artwork subtype picker identifies the original iPhone 17 family model without mistaking an original subtype that shares a value with another model for a spoof.
 - Settings shows whether the configured App Group is accessible. The default for this fork is `group.com.soum91.mondcompat`.
 - The bundle identifier is `com.soum91.mondcompat`, allowing this fork to coexist with upstream mond.
@@ -67,6 +68,7 @@ Do not enable *Ignore exploit failure* or apply MobileGestalt changes until the 
 
 **Credits:**<br>
 &#45; [forcequit](https://github.com/forcequitOS) for worse_ and bad_ query, the sandbox escapes used by mond<br>
+&#45; [leminlimez/Nugget](https://github.com/leminlimez/Nugget) for the experimental CacheData structural patch locator<br>
 &#45; [johnny](https://github.com/0xjohnnydev) for his work on the MCM bug class<br>
 &#45; [jailbreak.party](https://github.com/jailbreakdotparty) for PartyUI, GestaltView and the implementation of [neon](https://github.com/neonmodder123)'s respring method<br>
 

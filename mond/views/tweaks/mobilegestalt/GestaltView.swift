@@ -56,6 +56,7 @@ struct GestaltView: View {
     @State private var tweak_version: Int = 0
     @State private var checkingReadOnlyAccess = false
     @State private var readOnlyReport: [String] = []
+    @State private var confirmExperimentalIPadOS = false
 
     private var originalDeviceLabel: String {
         switch machine_name() {
@@ -65,6 +66,12 @@ struct GestaltView: View {
         case "iPhone18,4": return "iPhone Air"
         default: return "This device"
         }
+    }
+
+    private func applySelectedTweaks() {
+        mg_apply_ui_state(selected_st, enable_device_name, mg_device_name, product_type)
+        mg_apply()
+        tweak_version += 1
     }
 
     var body: some View {
@@ -124,9 +131,11 @@ struct GestaltView: View {
 
                 Section {
                     Button {
-                        mg_apply_ui_state(selected_st, enable_device_name, mg_device_name, product_type)
-                        mg_apply()
-                        tweak_version += 1
+                        if tweak("Enable iPadOS Mode")?.is_on(in: mg_dict_now) == true {
+                            confirmExperimentalIPadOS = true
+                        } else {
+                            applySelectedTweaks()
+                        }
                     } label: {
                         Text("Apply Tweaks")
                     }
@@ -326,6 +335,14 @@ struct GestaltView: View {
             }
             .sheet(isPresented: $show_settings) {
                 SettingsView()
+            }
+            .alert("Experimental iPadOS Mode", isPresented: $confirmExperimentalIPadOS) {
+                Button("Cancel", role: .cancel) {}
+                Button("Apply Anyway", role: .destructive) {
+                    applySelectedTweaks()
+                }
+            } message: {
+                Text("This patch has NOT been verified on iPhone 17 / iOS 27.0.1. It changes the device class in MobileGestalt and can cause a boot loop, missing audio, or loss of system functionality. A saved plist is not a guarantee of recovery. Continue only if you have an external recovery backup.")
             }
         }
     }

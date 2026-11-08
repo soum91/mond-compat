@@ -226,8 +226,18 @@ let all_tweaks: [mg_tweak] = [
             guard let cache_data = dict["CacheData"] as? NSMutableData else {
                 return "CacheData is missing from MobileGestalt."
             }
-            guard cache_data_safe_offset("mtrAoWJ3gsq+I90ZnQ0vQw", in: cache_data) != nil else {
-                return "CacheData offset not found for this device/iOS version. iPadOS Mode binary patch is not supported."
+            guard validated_ipados_patch_location(in: cache_data) != nil else {
+                return "DeviceClassNumber location could not be uniquely validated for this device/iOS version. The iPadOS Mode binary patch remains disabled."
+            }
+            if UIDevice.current.systemVersion == "27.0.1" {
+                let backup = URL(fileURLWithPath: AppPaths.backups).appendingPathComponent("SavedGestalt.plist")
+                guard let savedData = try? Data(contentsOf: backup),
+                      let savedPlist = try? PropertyListSerialization.propertyList(from: savedData, format: nil),
+                      let savedDict = savedPlist as? [String: Any],
+                      let savedCacheData = savedDict["CacheData"] as? Data,
+                      savedCacheData.count == cache_data.length else {
+                    return "The original MobileGestalt backup is missing or does not match this CacheData layout. iPadOS Mode is disabled until an original backup is available."
+                }
             }
             return nil
         },
@@ -247,9 +257,9 @@ let all_tweaks: [mg_tweak] = [
         w_on: { dict in
             guard let cache_data = dict["CacheData"] as? NSMutableData,
                   let cache_extra = dict["CacheExtra"] as? NSMutableDictionary,
-                  let value_off = cache_data_safe_offset("mtrAoWJ3gsq+I90ZnQ0vQw", in: cache_data) else { return }
+                  let patch = validated_ipados_patch_location(in: cache_data) else { return }
             
-            cache_data.mutableBytes.storeBytes(of: 3, toByteOffset: value_off, as: Int.self)
+            patch.apply(3, to: cache_data)
             
             let values: [String: Int] = [
                 "mG0AnH/Vy1veoqoLRAIgTA": 1,
@@ -266,9 +276,9 @@ let all_tweaks: [mg_tweak] = [
         w_off: { dict in
             guard let cache_data = dict["CacheData"] as? NSMutableData,
                   let cache_extra = dict["CacheExtra"] as? NSMutableDictionary,
-                  let value_off = cache_data_safe_offset("mtrAoWJ3gsq+I90ZnQ0vQw", in: cache_data) else { return }
+                  let patch = validated_ipados_patch_location(in: cache_data) else { return }
             
-            cache_data.mutableBytes.storeBytes(of: 1, toByteOffset: value_off, as: Int.self)
+            patch.apply(1, to: cache_data)
             
             let keys = ["mG0AnH/Vy1veoqoLRAIgTA", "UCG5MkVahJxG1YULbbd5Bg", "ZYqko/XM5zD3XBfN5RmaXA", "nVh/gwNpy7Jv1NOk00CMrw", "uKc7FPnEO++lVhHWHFlGbQ"]
             for key in keys {
@@ -406,6 +416,100 @@ func cache_data_safe_offset(_ key: String, in data: NSMutableData) -> Int? {
     let offset = cache_data_offset(key)
     guard offset > 0, offset <= data.length - MemoryLayout<Int>.size else { return nil }
     return offset
+}
+
+/// An iPadOS device-class change must never rely on an arbitrary integer offset.
+/// The first resolver uses the MobileGestalt mapping in the loaded system library.
+/// For iOS 27.0.1 only, the fallback mirrors Nugget's CacheData structural
+/// locator and additionally requires one unambiguous, validated candidate.
+private enum IPadOSPatchLocation {
+    case integer(byteOffset: Int)
+    case nibble(hexOffset: Int)
+
+    var description: String {
+        switch self {
+        case .integer(let byteOffset): return "MobileGestalt mapping (byte \(byteOffset))"
+        case .nibble(let hexOffset): return "validated CacheData layout (byte \(hexOffset / 2))"
+        }
+    }
+
+    func apply(_ value: UInt8, to data: NSMutableData) {
+        switch self {
+        case .integer(let byteOffset):
+            var number = UInt64(value)
+            data.replaceBytes(in: NSRange(location: byteOffset, length: MemoryLayout<UInt64>.size), withBytes: &number)
+        case .nibble(let hexOffset):
+            let byteOffset = hexOffset / 2
+            let existing = data.bytes.load(fromByteOffset: byteOffset, as: UInt8.self)
+            var replacement: UInt8
+            if hexOffset.isMultiple(of: 2) {
+                replacement = (existing & 0x0f) | (value << 4)
+            } else {
+                replacement = (existing & 0xf0) | value
+            }
+            data.replaceBytes(in: NSRange(location: byteOffset, length: 1), withBytes: &replacement)
+        }
+    }
+}
+
+private func validated_ipados_patch_location(in data: NSMutableData) -> IPadOSPatchLocation? {
+    let bytes = [UInt8](data as Data)
+    let originalOffset = cache_data_safe_offset("mtrAoWJ3gsq+I90ZnQ0vQw", in: data)
+
+    // Known older layout: the value must be an intact 64-bit integer 1 or 3.
+    let mapped: IPadOSPatchLocation? = {
+        guard let offset = originalOffset, offset + 8 <= bytes.count,
+              [UInt8(1), 3].contains(bytes[offset]),
+              bytes[(offset + 1)..<(offset + 8)].allSatisfy({ $0 == 0 }) else { return nil }
+        return .integer(byteOffset: offset)
+    }()
+
+    // Keep the alternate locator scoped to the firmware requested; no unknown
+    // version gets a guessed layout merely because the OS major matches.
+    guard UIDevice.current.systemVersion == "27.0.1" else { return mapped }
+
+    let hex = Array(bytes.map { String(format: "%02x", $0) }.joined().utf8)
+    let sliceStart = 1616
+    let sliceLength = 200
+    guard hex.count >= sliceStart + sliceLength,
+          let regex = try? NSRegularExpression(pattern: "0+(?:5555)*([0-9a-f]{4})") else { return nil }
+
+    let section = String(decoding: hex[sliceStart..<(sliceStart + sliceLength)], as: UTF8.self)
+    let sectionBytes = Array(section.utf8)
+    var locations: [Int] = []
+    for match in regex.matches(in: section, range: NSRange(location: 0, length: sectionBytes.count)) {
+        let group = match.range(at: 1)
+        guard group.location != NSNotFound, group.location + group.length <= sectionBytes.count,
+              sectionBytes[group.location..<(group.location + group.length)].filter({ $0 != 48 }).count >= 3 else { continue }
+
+        let offset = sliceStart + group.location
+        let left = offset - 67
+        let right = offset + 13
+        guard left > 0, right + 1 < hex.count else { continue }
+        let validNibble: (Int) -> Bool = { i in
+            (hex[i] == 49 || hex[i] == 51) && hex[i - 1] == 48 && hex[i + 1] == 48
+        }
+        guard validNibble(left), validNibble(right) else { continue }
+        locations.append(left)
+    }
+
+    // A pattern match is only usable if it identifies exactly one location.
+    guard locations.count == 1 else { return nil }
+    let candidate = locations[0]
+
+    // When the system's own mapping also resolves, both methods must identify
+    // the same byte. A disagreement is evidence to refuse the patch.
+    if let offset = originalOffset, mapped != nil, offset != candidate / 2 {
+        return nil
+    }
+    return .nibble(hexOffset: candidate)
+}
+
+func ipados_mode_patch_status(in data: NSMutableData) -> String {
+    guard let location = validated_ipados_patch_location(in: data) else {
+        return "No uniquely validated DeviceClassNumber location. Do not apply iPadOS Mode."
+    }
+    return "Experimental candidate: \(location.description). Not verified on a physical iPhone 17 running iOS 27.0.1."
 }
 
 let state = AppState.shared
@@ -616,6 +720,9 @@ func mg_read_only_report() -> [String] {
         lines.append("Property list: valid")
         lines.append("CacheExtra: \(extra == nil ? "missing" : "present")")
         lines.append("CacheData: \((dict["CacheData"] as? Data)?.count ?? 0) bytes")
+        if let cacheData = dict["CacheData"] as? NSMutableData {
+            lines.append("iPadOS Mode: \(ipados_mode_patch_status(in: cacheData))")
+        }
         if let subtype = artwork?["ArtworkDeviceSubType"] as? Int {
             lines.append("Current artwork subtype: \(subtype)")
         } else {
