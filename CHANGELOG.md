@@ -2,6 +2,13 @@
 
 All entries describe actual source changes. The installed version and build number are shown in the app's Settings screen.
 
+## Hybrid C external research addendum - 2026-11-09 (no Mond app version change)
+
+- Add an offline-built, OFF-by-default GoldenNugget Desktop `.batter` template for the two confirmed iOS 27.0.1 SpringBoard **configuration** keys, `SBChamoisWindowingEnabled` and `SBMedusaMultitaskingEnabled`. It is not an IPA, not a FlareStore update, and not confirmed to enable Stage Manager on an iPhone.
+- Deliberately exclude `SBFlexibleWindowingPreviouslyEnabledAutomaticStageCreation`, since independent primary-source device-backup research identifies it as runtime/history state rather than a tweakable preference.
+- Provide a self-checking standard-library builder, read-only archive verification, a separate high-risk experimental prerelease workflow, and detailed backup/restore precautions. The workflow does not modify any device.
+- Document that GoldenNugget's iOS 27 backup restore mirrors managed preferences into the normal SpringBoard plist, can replace unrelated original keys, and has no trustworthy automatic rollback for those keys. The existing Mond 3.0.7 `grant result -6` is not fixed by installing a different App Group.
+
 ## 3.0.7 (8) - research branch, 2026-11-09
 
 - Add a separate **Hybrid B: SpringBoard Windowing** experiment for iPhone18,3 on iOS 27.0.1. It stages three firmware-confirmed SpringBoard preference keys (`SBChamoisWindowingEnabled`, `SBMedusaMultitaskingEnabled`, `SBFlexibleWindowingPreviouslyEnabledAutomaticStageCreation`) before invoking the existing class-1-plus-five-flags test. Actual hybrid multitasking behavior is **unverified**.
