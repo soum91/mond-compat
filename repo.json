@@ -1,8 +1,8 @@
 {
   "name": "mond-compat",
   "identifier": "com.soum91.mondcompat.source",
-  "subtitle": "Experimental iPadOS Mode write verification on iOS 27.0.1",
-  "description": "Unsigned mond fork with validated experimental iPadOS Mode nibble locator, on-disk write-readback checks, original MobileGestalt .plist export and diagnostic Share/Copy/Files export. Apple iPadOS UI activation is unverified; a boot loop is possible.",
+  "subtitle": "iPadOS Mode with an opt-in hybrid layout test",
+  "description": "Unsigned mond fork for iPhone 17 / iOS 27.0.1 with confirmed on-disk iPadOS patching, validated diagnostics, working-layout backup export, and an experimental hybrid device-class A/B test. The hybrid layout has not been verified on a physical device and can cause instability or boot loops.",
   "sourceURL": "https://raw.githubusercontent.com/soum91/mond-compat/main/repo.json",
   "iconURL": "https://raw.githubusercontent.com/soum91/mond-compat/main/mond.png",
   "apps": [
@@ -10,19 +10,19 @@
       "name": "mond-compat",
       "bundleIdentifier": "com.soum91.mondcompat",
       "developerName": "soum91 (based on rooootdev)",
-      "subtitle": "iPadOS Mode verification tools for iOS 27.0.1",
-      "localizedDescription": "Compares Nugget-style device class nibble and capability flags, verifies on-disk writes, provides non-mutating O_RDWR diagnostic and original MobileGestalt export. No claim of successful system-level iPadOS activation; using experimental mode can cause a boot loop.",
+      "subtitle": "Working iPadOS and guarded hybrid layout experiment",
+      "localizedDescription": "Keep the existing iPadOS Mode feature; separately test iPhone DeviceClassNumber=1 with all five iPadOS flags retained. Export a validated backup of the full working iPadOS layout, restore its exact snapshot if the hybrid UI fails, and verify every MobileGestalt write by read-back. This is an experimental test, not a proven UI layout fix.",
       "category": "utilities",
       "iconURL": "https://raw.githubusercontent.com/soum91/mond-compat/main/mond.png",
       "versions": [
         {
-          "version": "3.0.5",
-          "buildVersion": "6",
-          "date": "2026-11-09T01:08:26Z",
-          "localizedDescription": "iPadOS class and flags on-disk verification, original backup export.",
-          "changelog": "Validate original DeviceClassNumber=1 and experimental patch location. Require DeviceClassNumber=3 plus all five flags to show enabled. Report open-for-write result without writing. Verify full file read-back after applying/reverting; export original .plist to Files; avoid automatic respring for experimental iPadOS. Real-device activation is not yet verified.",
+          "version": "3.0.6",
+          "buildVersion": "7",
+          "date": "2026-11-09T01:54:11Z",
+          "localizedDescription": "Hybrid layout A/B test with exact known-working iPadOS restore.",
+          "changelog": "Add an opt-in iPhone-class plus five-flag test for iPhone18,3/iOS 27.0.1 without changing the working iPadOS toggle. Capture and verify a complete pre-test class-3 snapshot; export it via Files, restore it exactly, and display the class/flag state in read-only diagnostics. Require original backup and matching layout; verify written bytes before reporting success. Hybrid UI behavior remains unverified; no automatic respring or reboot.",
           "downloadURL": "https://github.com/soum91/mond-compat/releases/download/development/mond.ipa",
-          "size": 3463674,
+          "size": 3482368,
           "minOSVersion": "17.0"
         }
       ]
