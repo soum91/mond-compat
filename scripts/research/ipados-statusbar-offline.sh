@@ -39,11 +39,11 @@ if ((${#caches[@]} == 0)); then
 fi
 
 images=(
-  'SystemStatusUI'
-  'SpringBoardFoundation'
-  'PosterFoundation'
-  'UIKitCore'
-  'FrontBoardServices'
+  '/System/Library/PrivateFrameworks/SystemStatusUI.framework/SystemStatusUI'
+  '/System/Library/PrivateFrameworks/SpringBoardFoundation.framework/SpringBoardFoundation'
+  '/System/Library/PrivateFrameworks/PosterFoundation.framework/PosterFoundation'
+  '/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore'
+  '/System/Library/PrivateFrameworks/FrontBoardServices.framework/FrontBoardServices'
 )
 
 for cache in "${caches[@]}"; do
@@ -52,7 +52,7 @@ for cache in "${caches[@]}"; do
   ipsw dyld info "${cache}" > "${report_dir}/${base}-info.log" 2>&1 || true
 
   for target in "${images[@]}"; do
-    safe_target="${base}-${target}"
+    safe_target="${base}-${target##*/}"
     # Extracting only named images avoids distributing Apple's binary files.
     if ipsw dyld extract "${cache}" "${target}" \
       --output "${research_workspace}/dylibs" \
@@ -69,12 +69,12 @@ done
   echo 'RESEARCH STRINGS (presence is not proof of a callable override):'
 } >> "${report}"
 
-string_pattern='STUIStatusBar|SystemStatusUI|statusBarClass|StatusBarOverrides|SpeakeasyNewStatusBar|PFCurrentDeviceClass|DeviceClassNumber|MenuBar|windowedApps|StageManager|stageManager|DynamicSplitSmallIsland|displayCornerRadius|HomeScreen|LockScreen'
+string_pattern='STUIStatusBar|SystemStatusUI|StatusBarOverrides|SpeakeasyNewStatusBar|PFCurrentDeviceClass|DeviceClassNumber|userInterfaceIdiom|deviceClass|MenuBar|windowedApps|StageManager|DynamicSplitSmallIsland|displayCornerRadius|HomeScreen|LockScreen'
 
 while IFS= read -r -d '' dylib; do
   label="${dylib#${research_workspace}/dylibs/}"
   echo "== ${label} ==" >> "${report}"
-  strings -a "${dylib}" | grep -Ei "${string_pattern}" | sort -u | head -150 >> "${report}" || true
+  strings -a "${dylib}" | grep -Ei "${string_pattern}" | sort -u | head -250 >> "${report}" || true
 done < <(find "${research_workspace}/dylibs" -type f -print0)
 
 {
