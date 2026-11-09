@@ -50,6 +50,37 @@ extracts iPhone18,3 / iOS 27.0.1 (24A446) dyld cache from Apple's firmware
 using blacktop's `ipsw` tooling, inspects a few named frameworks, and uploads
 text logs as a short-lived artifact. It never contacts or patches a phone.
 
+### Verified offline results, November 8, 2026
+
+The [completed workflow run](https://github.com/soum91/mond-compat/actions/runs/42557229505)
+successfully extracted and searched the actual iOS 27.0.1 binaries for:
+
+- `/System/Library/PrivateFrameworks/SystemStatusUI.framework/SystemStatusUI`
+- `/System/Library/PrivateFrameworks/SpringBoardFoundation.framework/SpringBoardFoundation`
+- `/System/Library/PrivateFrameworks/PosterFoundation.framework/PosterFoundation`
+- `/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore`
+- `/System/Library/PrivateFrameworks/FrontBoardServices.framework/FrontBoardServices`
+
+The named strings found in these firmware binaries include:
+
+| Framework | Actual iOS 27.0.1 evidence | Interpretation and limit |
+| --- | --- | --- |
+| `SystemStatusUI` | `STUIStatusBar`, `STUIStatusBarDisplayItem`, `menuBar`, `StatusBarOverrides`, `STUIStatusBarDataOverridesViewController` | Confirms modern status-bar/menu bar internals; does not demonstrate a device-layout preference or writable UI override. |
+| `SpringBoardFoundation` | `SBAutomaticallyShowAndHideMenuBar`, `SBMenuBarDemoMode`, `SBHomeScreenScreenTypeOverride` | Confirms known menu bar auto-hide option and an additional Home Screen override *name*; no evidence this affects status-bar geometry or keeps multitasking. |
+| `PosterFoundation` | `DeviceClassNumber`, `PRPosterRoleLockScreen` | Consistent with a separately class-sensitive Lock Screen layout; not proof of a separate Lock Screen override. |
+| `UIKitCore` | `userInterfaceIdiomOverride`, `UITraitUserInterfaceIdiom`, `_UIDeviceNativeUserInterfaceIdiomIgnoringClassic`, `STUIStatusBar_Wrapper` | Suggests scene/trait-level idiom mechanisms exist. No evidence that a stock sideloaded app can configure them inside SpringBoard/SystemStatusUI. |
+
+The extractor previously failed to find `SystemStatusUI` and
+`SpringBoardFoundation` only because each name also matched an accessibility
+bundle. Using the full private-framework paths fixed that ambiguity.
+
+**Conclusion of this scan:** no verified independent non-jailbreak setting
+for iPhone-style system status bar, Lock Screen, and Stage Manager together.
+The more targeted approach remains a *SpringBoard-scoped* idiom override like
+TrollPad's, contingent on a validated iOS 27 system-process injection method
+and freshly verified selectors. `worse_query` granting selected file handles
+is not evidence of that capability. A text string alone is not a safe patch.
+
 The next actionable threshold is identifying a **separate** preference,
 entitled service, or independently enforced capability allowing Windowed Apps
 without global iPad device class. Mere strings or unsupported preference
