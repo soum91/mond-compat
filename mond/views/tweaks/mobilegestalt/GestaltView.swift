@@ -86,6 +86,11 @@ struct GestaltView: View {
     @State private var hybridFeedback: String?
     @State private var confirmHybridTest = false
     @State private var confirmHybridRestore = false
+    @State private var windowingReport: [String] = []
+    @State private var showWindowingBackupExporter = false
+    @State private var windowingBackupDocument: GestaltBackupDocument?
+    @State private var confirmWindowingTest = false
+    @State private var confirmWindowingRestore = false
 
     private var originalDeviceLabel: String {
         switch machine_name() {
@@ -288,6 +293,98 @@ struct GestaltView: View {
                         Label("Hybrid Layout Experiment", systemImage: "rectangle.on.rectangle")
                     } footer: {
                         Text("Test A only: changes the on-disk device class while preserving all five flags. Save and export the current working iPadOS layout first. After a successful read-back, respring or reboot only if you accept the bootloop risk and have a separate recoverable backup.")
+                    }
+
+                    Section {
+                        Button {
+                            windowingReport = mg_windowing_prefs_report()
+                        } label: {
+                            Label("Check SpringBoard Windowing Preferences", systemImage: "doc.text.magnifyingglass")
+                        }
+
+                        if !windowingReport.isEmpty {
+                            ForEach(windowingReport, id: \.self) { line in
+                                Text(line)
+                                    .font(.footnote)
+                                    .textSelection(.enabled)
+                            }
+                            DiagnosticExportControls(
+                                report: windowingReport.joined(separator: "\n"),
+                                filename: "mond-springboard-windowing-diagnostic"
+                            )
+                        }
+
+                        Button {
+                            runHybridOperation { try mg_windowing_capture_snapshots() }
+                        } label: {
+                            Label("Save Both Working System Snapshots", systemImage: "externaldrive.badge.plus")
+                        }
+
+                        Button {
+                            do {
+                                let snapshot = try mg_windowing_prefs_snapshot()
+                                windowingBackupDocument = GestaltBackupDocument(data: snapshot)
+                                showWindowingBackupExporter = true
+                            } catch {
+                                hybridFeedback = "Cannot export SpringBoard snapshot: \(error.localizedDescription)"
+                            }
+                        } label: {
+                            Label("Export SpringBoard Snapshot to Files", systemImage: "square.and.arrow.up")
+                        }
+                        .fileExporter(
+                            isPresented: $showWindowingBackupExporter,
+                            document: windowingBackupDocument,
+                            contentType: .propertyList,
+                            defaultFilename: "SpringBoard-Preferences-Before-Hybrid"
+                        ) { result in
+                            switch result {
+                            case .success:
+                                hybridFeedback = "SpringBoard snapshot exported. Also export the working iPadOS layout in the section above."
+                            case .failure(let error):
+                                hybridFeedback = "SpringBoard export failed: \(error.localizedDescription)"
+                            }
+                        }
+
+                        Button("Test B: iPhone Layout + SpringBoard Windowing") {
+                            confirmWindowingTest = true
+                        }
+                        .confirmationDialog(
+                            "Unverified SpringBoard windowing experiment",
+                            isPresented: $confirmWindowingTest,
+                            titleVisibility: .visible
+                        ) {
+                            Button("Write Three Prefs and Hybrid Class", role: .destructive) {
+                                runHybridOperation { try mg_windowing_apply_test() }
+                                windowingReport = mg_windowing_prefs_report()
+                            }
+                        } message: {
+                            Text("This saves both exact backups, writes three SpringBoard windowing keys, and sets iPhone class 1 while retaining all five iPad flags. This combination has never been verified on an iPhone. A respring or reboot can make the device unusable. Export BOTH snapshots and keep a separate computer backup first. No automatic restart occurs.")
+                        }
+
+                        Button("Restore Both Working System Files") {
+                            confirmWindowingRestore = true
+                        }
+                        .confirmationDialog(
+                            "Restore known-working iPadOS configuration",
+                            isPresented: $confirmWindowingRestore,
+                            titleVisibility: .visible
+                        ) {
+                            Button("Restore Class 3 and SpringBoard Keys", role: .destructive) {
+                                runHybridOperation { try mg_windowing_restore_both() }
+                                windowingReport = mg_windowing_prefs_report()
+                            }
+                        } message: {
+                            Text("Restore the exact saved MobileGestalt class-3 layout and return only the three SpringBoard keys to their original values. Other SpringBoard preferences are preserved. This cannot guarantee recovery from a boot loop.")
+                        }
+
+                        Button("Restore SpringBoard Keys Only") {
+                            runHybridOperation { try mg_windowing_restore_prefs_only() }
+                            windowingReport = mg_windowing_prefs_report()
+                        }
+                    } header: {
+                        Label("Hybrid B: SpringBoard Windowing", systemImage: "macwindow.on.rectangle")
+                    } footer: {
+                        Text("Experimental and unverified: these keys exist in iOS 27.0.1, but were only shown controlling windowing on an iPad simulator. File read-back does not prove SpringBoard will honor the values. Preference caching may overwrite them. This test never automatically resprings or reboots. The working class-3 main release is unchanged.")
                     }
                 }
 
