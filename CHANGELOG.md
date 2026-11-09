@@ -2,6 +2,15 @@
 
 All entries describe actual source changes. The installed version and build number are shown in the app's Settings screen.
 
+## 3.0.7 (8) - research branch, 2026-11-09
+
+- Add a separate **Hybrid B: SpringBoard Windowing** experiment for iPhone18,3 on iOS 27.0.1. It stages three firmware-confirmed SpringBoard preference keys (`SBChamoisWindowingEnabled`, `SBMedusaMultitaskingEnabled`, `SBFlexibleWindowingPreviouslyEnabledAutomaticStageCreation`) before invoking the existing class-1-plus-five-flags test. Actual hybrid multitasking behavior is **unverified**.
+- Preserve the complete original `com.apple.springboard.plist` in a separate private, conflict-protected snapshot, alongside the established exact working class-3 MobileGestalt snapshot; add native Files export of the SpringBoard backup.
+- Read back and verify the written preference file, provide a read-only preference report with Copy/Share/Save as Text, and attempt to recover both originals if the subsequent MobileGestalt write fails.
+- Add **Restore Both Working System Files** and **Restore SpringBoard Keys Only** controls; the latter restores only the original presence/values of the three keys, preserving unrelated SpringBoard preferences.
+- Leave the existing class-only test, original iPadOS toggle, main release and automatic-restart behavior unchanged. Add a research-branch-only CI build that uploads an unsigned IPA artifact without publishing a release.
+- Warn that `cfprefsd` caching may discard direct preference-file edits, a file write does not prove active windowing, and an app-local rollback cannot recover a device stuck in a boot loop.
+
 ## 3.0.6 (7) - 2026-11-09
 
 - Add a separately confirmed, opt-in **Hybrid Layout Experiment** for iPhone18,3 on iOS 27.0.1. It changes only the validated `DeviceClassNumber` value from 3 (iPad) to 1 (iPhone), retaining all five iPadOS capability flags for a controlled on-device A/B test. It does **not** claim that iPad windowing or iPhone Lock Screen layout will remain functional.
