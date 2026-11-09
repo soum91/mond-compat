@@ -43,3 +43,4 @@ jobs:
               --prerelease \
               --title "Hybrid D: GoldenNugget Mobile windowing template (unverified)" \
               --notes "HIGH-RISK, UNVERIFIED, iPhone18,3 iOS 27.0.1 only. GoldenNugget Mobile v2 default-OFF .batter. Requests Chamois and Medusa SpringBoard preferences via ManagedPreferencesDomain; on iOS 27 GoldenNugget Mobile mirrors into HomeDomain and may overwrite unrelated SpringBoard preference keys. No change to MobileGestalt or iPhone device class. Switching OFF later does not undo the restore. Independently verified encrypted computer backup and recovery plan are required. No proof Stage Manager works. See research/goldennugget-mobile-windowing/README.md."
+          fi
