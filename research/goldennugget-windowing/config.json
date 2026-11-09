@@ -1,0 +1,29 @@
+{
+  "title": "Mond: iPhone + iPad Windowing Research",
+  "author": "soum91 / Mond research",
+  "description": "UNVERIFIED, HIGH-RISK iPhone18,3 / iOS 27.0.1 experiment. Intended only for a separately backed-up test device. It requests two SpringBoard multitasking preferences while retaining the iPhone device class. The GoldenNugget iOS 27 restore pipeline can replace the device's normal SpringBoard preferences mirror. This does not preserve or automatically restore the original SpringBoard plist. Do not apply without a full computer backup and a recovery plan.",
+  "format_version": "3",
+  "min_version": "27.0.1",
+  "max_version": "27.0.1",
+  "tweaks": [
+    {
+      "id": "mond.ipad-windowing-on-iphone",
+      "label": "Request iPad Windowing (experimental)",
+      "description": "Tests SBChamoisWindowingEnabled=true and SBMedusaMultitaskingEnabled=true. No proof that an iPhone-class SpringBoard will honor them. Turning this switch OFF does NOT restore the original preferences. Restore from a known-good device backup if the result is unstable.",
+      "default": false,
+      "min_version": "27.0.1",
+      "max_version": "27.0.1",
+      "writes": [
+        {
+          "type": "plist",
+          "path": "/var/Managed Preferences/mobile/com.apple.springboard.plist",
+          "values": {
+            "SBChamoisWindowingEnabled": true,
+            "SBMedusaMultitaskingEnabled": true
+          }
+        }
+      ],
+      "writes_off": []
+    }
+  ]
+}
