@@ -1,0 +1,46 @@
+name: Package Hybrid C GoldenNugget template (research only)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/ipados-statusbar
+    paths:
+      - 'research/goldennugget-windowing/**'
+      - '.github/workflows/package-goldennugget-hybrid.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate and package opt-in experimental template
+        run: |
+          python3 research/goldennugget-windowing/build_template.py \
+            --output dist/Mond-iPhone-Stage-Experiment.batter
+          python3 research/goldennugget-windowing/build_template.py \
+            --verify dist/Mond-iPhone-Stage-Experiment.batter
+          unzip -l dist/Mond-iPhone-Stage-Experiment.batter
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mond-hybrid-c-goldennugget-template
+          path: dist/Mond-iPhone-Stage-Experiment.batter
+          if-no-files-found: error
+      - name: Publish separate experimental prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_TAG="hybrid-c-goldennugget-27.0.1"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" dist/Mond-iPhone-Stage-Experiment.batter --clobber
+          else
+            gh release create "$RELEASE_TAG" dist/Mond-iPhone-Stage-Experiment.batter \
+              --target "$GITHUB_SHA" \
+              --prerelease \
+              --title "Hybrid C: GoldenNugget external preferences research" \
+              --notes "UNVERIFIED HIGH-RISK iOS 27.0.1 research. OFF-by-default GoldenNugget Desktop .batter template; NOT an IPA and NOT a FlareStore entry. Writes Chamois and Medusa SpringBoard managed preferences only. iOS 27 backup restore also mirrors into normal SpringBoard preferences and can overwrite other keys. Not proven to enable windowing on iPhone18,3. Back up device with an independently verified encrypted computer backup and plan recovery BEFORE any test. Switching off does not restore original preferences. Read research/goldennugget-windowing/README.md before using."
+          fi
