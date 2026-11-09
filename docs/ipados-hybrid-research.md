@@ -74,6 +74,49 @@ The extractor previously failed to find `SystemStatusUI` and
 `SpringBoardFoundation` only because each name also matched an accessibility
 bundle. Using the full private-framework paths fixed that ambiguity.
 
+### Stronger independent-windowing candidate (November 8 follow-up)
+
+The [focused iOS 27.0.1 scan](https://github.com/soum91/mond-compat/actions/runs/42559195790)
+also recovered `SpringBoard.framework` and `SystemStatus.framework`. The
+**actual iOS 27.0.1 SpringBoardFoundation binary** contains each of:
+
+- `SBChamoisWindowingEnabled`
+- `SBMedusaMultitaskingEnabled`
+- `SBFlexibleWindowingPreviouslyEnabledAutomaticStageCreation`
+
+It also contains `DeviceSupportsEnhancedMultitasking`. Meanwhile,
+`SpringBoard.framework` has `chamoisWindowingEnabled` and FlexibleWindowing
+classes; `SystemStatus.framework` has the distinct `menuBarEntry` name; and
+`UIKitCore` has `LegacyPhonesStatusBarUsesiPadLayout` (whose meaning and call
+sites have **not** been verified).
+
+An [independent iPadOS simulator automation](https://github.com/pingdotgg/t3code/blob/main/scripts/mobile-showcase.ts)
+documents that the **three SpringBoard preferences** are all needed to switch
+its iPad simulator from windowed apps to fullscreen mode; the simulator must
+reboot afterward. This is evidence of a native windowing preferences path,
+**not** a successful iPhone hybrid layout.
+
+**Candidate next on-device test, not yet performed:** With separate external
+backups of the original MobileGestalt, working class-3 MobileGestalt and
+existing `com.apple.springboard` preferences, verify the current preference
+values first. On a recoverable experimental installation only, test
+`DeviceClassNumber=1` with the existing five iPad capability flags and the
+three SpringBoard windowing preferences enabled. Read back both files before
+rebooting. Record actual Stage Manager and status/Lock Screen behavior. If
+windowing disappears or stability suffers, restore both captured originals;
+**do not** repeatedly toggle device class or leave an unverified auto-apply
+mechanism installed.
+
+This test still has a significant chance of failure: actual SpringBoard
+windowing methods may independently require the iPad idiom, as TrollPad's
+per-call hooks illustrate. The simulator result alone cannot establish safety
+or success on a non-jailbroken iPhone 17. A locked-out or boot-looping device
+may not be recoverable with the app's internal rollback button.
+
+The modern `StatusBarOverrides.archive` research supports carrier and cellular
+data changes; it does **not** demonstrate an iPhone-style status-bar layout or
+suppression of `menuBarEntry`. Do not label that as a complete solution.
+
 **Conclusion of this scan:** no verified independent non-jailbreak setting
 for iPhone-style system status bar, Lock Screen, and Stage Manager together.
 The more targeted approach remains a *SpringBoard-scoped* idiom override like
