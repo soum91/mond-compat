@@ -80,6 +80,19 @@ while IFS= read -r -d '' dylib; do
   strings -a "${dylib}" | grep -Ei "${string_pattern}" | sort -u | head -350 >> "${report}" || true
 done < <(find "${research_workspace}/dylibs" -type f -print0)
 
+# A focused, independent pass avoids missing key selectors when large
+# SpringBoard binaries exceed the generic sorted output's 350-line cap.
+{
+  echo
+  echo 'FOCUSED MULTITASKING / MENU BAR / IDIOM STRINGS:'
+} >> "${report}"
+focus_pattern='SBMedusa|MedusaEnabled|MedusaDeviceSimulation|ForceMedusa|EnhancedMultitasking|menuBarEntry|MenuBarDemoMode|SBMenuBar|StatusBarOverrides\.archive|StatusBar.*Layout|StatusBar.*Idiom|userInterfaceIdiomOverride|DeviceClassNumber|deviceClassOverride|statusBar.*DeviceClass|windowedApps'
+while IFS= read -r -d '' dylib; do
+  label="${dylib#${research_workspace}/dylibs/}"
+  echo "== ${label} ==" >> "${report}"
+  strings -a "${dylib}" | grep -Ei "${focus_pattern}" | sort -u | head -180 >> "${report}" || true
+done < <(find "${research_workspace}/dylibs" -type f -print0)
+
 {
   echo
   echo 'LIMITATIONS:'
