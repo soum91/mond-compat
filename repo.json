@@ -1,8 +1,8 @@
 {
   "name": "mond-compat",
   "identifier": "com.soum91.mondcompat.source",
-  "subtitle": "iPadOS Mode with an opt-in hybrid layout test",
-  "description": "Unsigned mond fork for iPhone 17 / iOS 27.0.1 with confirmed on-disk iPadOS patching, validated diagnostics, working-layout backup export, and an experimental hybrid device-class A/B test. The hybrid layout has not been verified on a physical device and can cause instability or boot loops.",
+  "subtitle": "iPadOS Mode and opt-in SpringBoard Hybrid B test",
+  "description": "Unsigned Mond fork for iPhone 17 / iOS 27.0.1. Version 3.0.7 adds an unverified SpringBoard windowing experiment with separate system backups and rollback. The earlier working 3.0.6 version remains in the version history. Device instability or boot loops are possible.",
   "sourceURL": "https://raw.githubusercontent.com/soum91/mond-compat/main/repo.json",
   "iconURL": "https://raw.githubusercontent.com/soum91/mond-compat/main/mond.png",
   "apps": [
@@ -10,11 +10,21 @@
       "name": "mond-compat",
       "bundleIdentifier": "com.soum91.mondcompat",
       "developerName": "soum91 (based on rooootdev)",
-      "subtitle": "Working iPadOS and guarded hybrid layout experiment",
-      "localizedDescription": "Keep the existing iPadOS Mode feature; separately test iPhone DeviceClassNumber=1 with all five iPadOS flags retained. Export a validated backup of the full working iPadOS layout, restore its exact snapshot if the hybrid UI fails, and verify every MobileGestalt write by read-back. This is an experimental test, not a proven UI layout fix.",
+      "subtitle": "Working iPadOS mode plus experimental Hybrid B",
+      "localizedDescription": "The normal iPadOS Mode remains available. Hybrid B separately tests iPhone DeviceClassNumber=1 with five iPad flags and three native SpringBoard windowing preferences. The app saves/exports both original system files, verifies disk read-back, and offers two rollback paths. Not proven on physical iPhone.",
       "category": "utilities",
       "iconURL": "https://raw.githubusercontent.com/soum91/mond-compat/main/mond.png",
       "versions": [
+        {
+          "version": "3.0.7",
+          "buildVersion": "8",
+          "date": "2026-11-09T04:19:20Z",
+          "localizedDescription": "Hybrid B (experimental): three SpringBoard windowing preferences and iPhone class 1 with all five existing iPadOS capability flags. On-disk writes are checked; runtime behavior has not been verified.",
+          "changelog": "Add separate guarded Hybrid B test with read-only SpringBoard preference diagnostics, exact backups for both MobileGestalt and SpringBoard, native Files export, rollback of both states, and independent three-key restore. Preserves prior class-3 working mode. No automatic reboot. Risk: SpringBoard may ignore the prefs or iOS may bootloop.",
+          "downloadURL": "https://github.com/soum91/mond-compat/releases/download/hybrid-b-3.0.7/mond-hybrid-research.ipa",
+          "size": 3496176,
+          "minOSVersion": "17.0"
+        },
         {
           "version": "3.0.6",
           "buildVersion": "7",
