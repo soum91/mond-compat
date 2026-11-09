@@ -107,6 +107,17 @@ windowing disappears or stability suffers, restore both captured originals;
 **do not** repeatedly toggle device class or leave an unverified auto-apply
 mechanism installed.
 
+The research branch now contains the **Hybrid B** opt-in UI for this test.
+It captures an exact `com.apple.springboard.plist` snapshot separately from
+the known-working class-3 MobileGestalt, exports both via the native Files
+picker, checks on-disk values, and offers independent preference rollback.
+The code deliberately refuses to invent an absent SpringBoard plist, refuses
+to overwrite a mismatched backup, and does not auto-respring or reboot.
+Writing this file requires a separately obtained sandbox grant and may fail.
+`cfprefsd` caching could undo direct disk changes, even when immediate readback
+matches. **No physical-device validation has yet occurred.** The app is an
+experimental test harness, not a proven iPhone-style status-bar fix.
+
 This test still has a significant chance of failure: actual SpringBoard
 windowing methods may independently require the iPad idiom, as TrollPad's
 per-call hooks illustrate. The simulator result alone cannot establish safety
