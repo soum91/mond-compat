@@ -1,0 +1,49 @@
+name: Build iPadOS hybrid research IPA
+
+on:
+  push:
+    branches:
+      - research/ipados-statusbar
+    paths:
+      - 'mond/**'
+      - 'mond.xcodeproj/**'
+      - '.github/workflows/ipados-hybrid-research-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile-research-ipa:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - name: Check out research branch
+        uses: actions/checkout@v4
+      - name: Build unsigned iOS app
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project mond.xcodeproj \
+            -scheme mond \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            -quiet build
+      - name: Package IPA for local signing only
+        run: |
+          set -euo pipefail
+          mkdir -p Payload
+          APP_PATH="$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' -print -quit)"
+          test -n "$APP_PATH"
+          cp -R "$APP_PATH" Payload/
+          ditto -c -k --keepParent Payload mond-hybrid-research.ipa
+      - name: Upload research build without changing main release
+        uses: actions/upload-artifact@v4
+        with:
+          name: mond-hybrid-research-unsigned-ipa
+          path: mond-hybrid-research.ipa
+          retention-days: 7
+          if-no-files-found: error
