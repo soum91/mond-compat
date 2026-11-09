@@ -80,6 +80,8 @@ The more targeted approach remains a *SpringBoard-scoped* idiom override like
 TrollPad's, contingent on a validated iOS 27 system-process injection method
 and freshly verified selectors. `worse_query` granting selected file handles
 is not evidence of that capability. A text string alone is not a safe patch.
+In Mond's source, its logged `pb` handle specifically refers to a
+**PosterBoard container descriptor**; it is not a SpringBoard process handle.
 
 The next actionable threshold is identifying a **separate** preference,
 entitled service, or independently enforced capability allowing Windowed Apps
