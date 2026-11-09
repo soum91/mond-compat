@@ -1,0 +1,33 @@
+name: iPadOS hybrid status bar research (offline)
+
+on:
+  push:
+    branches:
+      - research/ipados-statusbar
+    paths:
+      - '.github/workflows/ipados-statusbar-research.yml'
+      - 'scripts/research/ipados-statusbar-offline.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-firmware:
+    runs-on: macos-latest
+    timeout-minutes: 110
+    steps:
+      - name: Check out research script
+        uses: actions/checkout@v4
+      - name: Install official ipsw research CLI
+        run: brew install blacktop/tap/ipsw
+      - name: Inspect iOS 27.0.1 dyld cache without touching the device
+        run: bash scripts/research/ipados-statusbar-offline.sh
+      - name: Preserve diagnostic text even when extraction fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipados-statusbar-offline-report
+          path: ipados-research-results/
+          if-no-files-found: warn
+          retention-days: 7
