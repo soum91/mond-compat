@@ -1,8 +1,8 @@
 {
   "name": "mond-compat",
   "identifier": "com.soum91.mondcompat.source",
-  "subtitle": "Experimental iPadOS Mode locator and iOS 27.0.1 diagnostics",
-  "description": "Unsigned mond compatibility build with read-only MobileGestalt checks and an experimental, validated CacheData locator for iPadOS Mode on iOS 27.0.1. The firmware-specific iPadOS feature is unverified and can bootloop; a compatible App Group is required.",
+  "subtitle": "iOS 27.0.1 MobileGestalt diagnostics with verified export controls",
+  "description": "Unsigned mond compatibility build with MobileGestalt read-only diagnostics, verified Copy, native Share and Save as Text, plus an experimental validated CacheData iPadOS Mode locator. iPadOS Mode remains unverified on real iPhone 17 hardware and can bootloop; a provisioned App Group is required.",
   "sourceURL": "https://raw.githubusercontent.com/soum91/mond-compat/main/repo.json",
   "iconURL": "https://raw.githubusercontent.com/soum91/mond-compat/main/mond.png",
   "apps": [
@@ -10,19 +10,19 @@
       "name": "mond-compat",
       "bundleIdentifier": "com.soum91.mondcompat",
       "developerName": "soum91 (based on rooootdev)",
-      "subtitle": "Experimental iPadOS Mode on 27.0.1",
-      "localizedDescription": "Adds an opt-in iPadOS Mode locator based on Nugget's CacheData pattern with strict validation, original backup checks, and a separate high-risk confirmation. This feature has not been validated on an actual iPhone 17 / iOS 27.0.1 and may cause boot loops.",
+      "subtitle": "Diagnostics export and experimental iPadOS Mode on 27.0.1",
+      "localizedDescription": "MobileGestalt read-only diagnostics now support copy verification, native Share, and Save to Files. iPadOS Mode remains experimental and unverified on actual iPhone 17 iOS 27.0.1; using it may softbrick or bootloop the device.",
       "category": "utilities",
       "iconURL": "https://raw.githubusercontent.com/soum91/mond-compat/main/mond.png",
       "versions": [
         {
-          "version": "3.0.3",
-          "buildVersion": "4",
-          "date": "2026-11-08T23:29:23Z",
-          "localizedDescription": "Experimental iOS 27.0.1 iPadOS Mode locator with additional validation and warning.",
-          "changelog": "Experimental iPadOS Mode fallback for changed CacheData layout, unique candidate and neighboring-marker validation, backup requirement, confirm-before-apply prompt, and diagnostic showing candidate method. Does not claim successful iPadOS Mode on real hardware.",
+          "version": "3.0.4",
+          "buildVersion": "5",
+          "date": "2026-11-09T00:54:17Z",
+          "localizedDescription": "Reliable diagnostic copy feedback with Share and Save as Text fallbacks.",
+          "changelog": "Replace silent clipboard copy for MobileGestalt diagnostics and logs with explicit copy verification and feedback. Add native share sheet and Files text export; logs are selectable. Does not change iPadOS Mode patching or claim real-device validation.",
           "downloadURL": "https://github.com/soum91/mond-compat/releases/download/development/mond.ipa",
-          "size": 3444057,
+          "size": 3449913,
           "minOSVersion": "17.0"
         }
       ]
