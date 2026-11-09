@@ -1,0 +1,20 @@
+{
+  "title": "Mond: iPhone Windowing (Mobile Experiment)",
+  "author": "soum91 / Mond research",
+  "description": "UNVERIFIED, HIGH RISK, iPhone18,3 on iOS 27.0.1 only. Back up externally first. Requests Chamois and Medusa SpringBoard preferences while leaving the iPhone device class unchanged. Applying can replace unrelated SpringBoard settings. Switching OFF later is NOT a rollback.",
+  "format_version": "2",
+  "domain": "ManagedPreferencesDomain",
+  "min_version": "27.0.1",
+  "max_version": "27.0.1",
+  "options": [
+    {
+      "type": "remove",
+      "label": "Request iPad windowing (unverified, HIGH RISK)",
+      "files": [
+        "container/mobile/com.apple.springboard.plist"
+      ],
+      "inverted": true,
+      "default_value": false
+    }
+  ]
+}

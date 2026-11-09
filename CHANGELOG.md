@@ -2,6 +2,13 @@
 
 All entries describe actual source changes. The installed version and build number are shown in the app's Settings screen.
 
+## Hybrid D GoldenNugget Mobile template - 2026-11-09 (no Mond app version change)
+
+- Add a separate format-2, default-OFF `.batter` research template compatible with GoldenNugget Mobile's imported-template format. No new IPA, FlareStore JSON or Mond application changes are involved.
+- Package exactly two SpringBoard Boolean preferences, `SBChamoisWindowingEnabled` and `SBMedusaMultitaskingEnabled`, in one `ManagedPreferencesDomain` plist payload, gated to iOS 27.0.1; omit MobileGestalt device-class spoofing and runtime/history state.
+- Add an offline archive builder/validator and dedicated prerelease workflow, separate from the existing Desktop Hybrid C template.
+- Document that GoldenNugget Mobile mirrors the payload into `HomeDomain` on iOS 27 and can overwrite unrelated settings, that disabling the template does not roll back an earlier restore, and that actual device behavior is unverified.
+
 ## Hybrid C external research addendum - 2026-11-09 (no Mond app version change)
 
 - Add an offline-built, OFF-by-default GoldenNugget Desktop `.batter` template for the two confirmed iOS 27.0.1 SpringBoard **configuration** keys, `SBChamoisWindowingEnabled` and `SBMedusaMultitaskingEnabled`. It is not an IPA, not a FlareStore update, and not confirmed to enable Stage Manager on an iPhone.

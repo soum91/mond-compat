@@ -1,0 +1,45 @@
+name: Package Mond GoldenNugget Mobile template (experimental)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/ipados-statusbar
+    paths:
+      - 'research/goldennugget-mobile-windowing/**'
+      - '.github/workflows/package-goldennugget-mobile.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and inspect default-OFF mobile template
+        run: |
+          python3 research/goldennugget-mobile-windowing/build_template.py \
+            --output dist/Mond-iPhone-Windowing-Mobile.batter
+          python3 research/goldennugget-mobile-windowing/build_template.py \
+            --verify dist/Mond-iPhone-Windowing-Mobile.batter
+          unzip -l dist/Mond-iPhone-Windowing-Mobile.batter
+      - name: Retain package as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mond-goldennugget-mobile-experimental
+          path: dist/Mond-iPhone-Windowing-Mobile.batter
+          if-no-files-found: error
+      - name: Publish separate mobile experimental prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_TAG="hybrid-d-goldennugget-mobile-27.0.1"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" dist/Mond-iPhone-Windowing-Mobile.batter --clobber
+          else
+            gh release create "$RELEASE_TAG" dist/Mond-iPhone-Windowing-Mobile.batter \
+              --target "$GITHUB_SHA" \
+              --prerelease \
+              --title "Hybrid D: GoldenNugget Mobile windowing template (unverified)" \
+              --notes "HIGH-RISK, UNVERIFIED, iPhone18,3 iOS 27.0.1 only. GoldenNugget Mobile v2 default-OFF .batter. Requests Chamois and Medusa SpringBoard preferences via ManagedPreferencesDomain; on iOS 27 GoldenNugget Mobile mirrors into HomeDomain and may overwrite unrelated SpringBoard preference keys. No change to MobileGestalt or iPhone device class. Switching OFF later does not undo the restore. Independently verified encrypted computer backup and recovery plan are required. No proof Stage Manager works. See research/goldennugget-mobile-windowing/README.md."
