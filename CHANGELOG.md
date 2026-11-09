@@ -2,6 +2,13 @@
 
 All entries describe actual source changes. The installed version and build number are shown in the app's Settings screen.
 
+## 3.0.4 (5) - 2026-11-08
+
+- Replace the silent MobileGestalt Copy Diagnostic action with a shared export control that verifies clipboard contents and displays a visible copy result.
+- Add native Share and Save as Text actions to MobileGestalt diagnostics; export the complete report through the iOS share sheet or the native Files picker when copying fails.
+- Make application logs selectable and give them the same Copy, Share and Save as Text options.
+- Document a mandatory cross-app diagnostic export contract for future releases. Clipboard success in the field remains unverified until a signed device test.
+
 ## 3.0.3 (4) - 2026-11-08
 
 - Add an **experimental** iOS 27.0.1 iPadOS Mode locator using the CacheData structural pattern employed by Nugget when the older MobileGestalt-library offset resolver fails.

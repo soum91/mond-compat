@@ -18,7 +18,16 @@ struct LogView: View {
                     Text(log)
                         .font(.system(size: 10, design: .monospaced))
                         .multilineTextAlignment(.leading)
+                        .textSelection(.enabled)
                         .padding(.top)
+
+                    if !log.isEmpty {
+                        DiagnosticExportControls(
+                            report: log,
+                            filename: "mond-logs"
+                        )
+                        .padding(.vertical)
+                    }
 
                     Spacer()
                         .id(0)
@@ -41,13 +50,6 @@ struct LogView: View {
                             log.append(text)
                             proxy.scrollTo(0)
                         }
-                    }
-                }
-                .contextMenu {
-                    Button {
-                        UIPasteboard.general.string = log
-                    } label: {
-                        Label("Copy Output", systemImage: "doc.on.doc")
                     }
                 }
             }

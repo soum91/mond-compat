@@ -119,9 +119,10 @@ struct GestaltView: View {
                                 .textSelection(.enabled)
                         }
 
-                        Button("Copy Diagnostic") {
-                            UIPasteboard.general.string = readOnlyReport.joined(separator: "\n")
-                        }
+                        DiagnosticExportControls(
+                            report: readOnlyReport.joined(separator: "\n"),
+                            filename: "mond-mobilegestalt-diagnostic"
+                        )
                     }
                 } header: {
                     Label("Read-Only Diagnostic", systemImage: "checkmark.shield")

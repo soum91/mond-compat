@@ -7,3 +7,12 @@
 - Never claim a firmware is exploitable solely because its version passes a guard. Validate the App Group container and return codes on a real device.
 - Run the iOS build workflow on every change to `main`. A failed build must be reported as failed, not published as a working IPA.
 - Do not remove `worse_query`'s App Group prerequisite or ship privileged tweaks with exploit failure ignored by default.
+
+## Universal diagnostic export rule (applies to all future diagnostic UIs)
+
+- Never ship a silent, clipboard-only diagnostic or log copy button. After writing to the iOS pasteboard, read back and verify the exact text, then show visible success or failure feedback.
+- Give every generated diagnostic at least three independent user actions: **Copy**, **Share** using the native share sheet, and **Save as `.txt`** using the native Files picker (`fileExporter` or `UIDocumentPickerViewController`). A failed clipboard operation must not prevent sharing or saving.
+- Keep the diagnostic text selectable, export the **entire** report instead of a truncated preview, and include iOS/device/app version and relevant error or return codes. Avoid secrets, account tokens, and private keys; offer redaction if potentially sensitive fields exist.
+- Test all actions in a real signed/sideloaded iPhone build, not only in simulator or an Xcode preview. Check that copied text really pastes into a different app; test native Share and Files export. If hardware verification is unavailable, state it explicitly and do not claim Copy/Share works.
+- Show distinct statuses for no report, copy success, copy failure, and save failure. Never use an unacknowledged `UIPasteboard.general.string = ...` as the only reporting mechanism.
+- For SwiftUI projects, prefer a reusable shared diagnostic export component, and add the same contract to new repos' `AGENTS.md` so other coding agents follow it.
