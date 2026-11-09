@@ -32,6 +32,16 @@ recommend repeating it just to confirm the already observed result.
   framework-level changes, which a MobileGestalt file-write exploit alone does
   not authorize. This remains a hypothesis until reverse engineering confirms
   the exact callsites, process boundaries and practical permissions.
+- `TrollPad` provides a concrete **jailbreak-only** example: it hooks
+  `-[UIDevice userInterfaceIdiom]` in SpringBoard and temporarily returns iPad
+  only while selected switcher/layout methods run, then restores the original
+  iPhone idiom. This demonstrates per-call policy is possible **with runtime
+  injection**, not that the same hook works on iOS 27 or can be applied with
+  `worse_query` file descriptors.
+- DarkSword/Cyanide's SpringBoard injection route does not support iOS 27.0.1:
+  its required kernel vulnerabilities were patched by iOS 26.1, so do not
+  suggest installing those tools or adapting an older injected tweak on this
+  device without a newly validated entry point.
 
 ## Offline experiment
 
@@ -59,4 +69,6 @@ report the lack of a verified fix instead of cycling additional MG values.
 - [Apple: iPadOS 27 menu bar](https://support.apple.com/en-mt/guide/ipad/ipadb4ede9db/27/ipados/27)
 - [GoldenNugget: iOS 27 status-bar research](https://github.com/Eazvy/GoldenNugget/blob/main/docs/iOS27_StatusBar_Research.md)
 - [VPhone: iPhone Duo and device-class mapping](https://lakr233.github.io/vphone-cli/research/Guest/iphone_duo_bringup.html)
+- [TrollPad: scoped SpringBoard idiom hooks](https://github.com/khanhduytran0/TrollPad/blob/main/TweakSB.x)
+- [Google Project Zero/GTIG: DarkSword patch status](https://cloud.google.com/blog/topics/threat-intelligence/darksword-ios-exploit-chain)
 - [blacktop/ipsw: extracting dyld from remote IPSWs](https://blacktop.github.io/ipsw/docs/guides/extract/)
