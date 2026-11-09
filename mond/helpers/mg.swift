@@ -226,8 +226,11 @@ let all_tweaks: [mg_tweak] = [
             guard let cache_data = dict["CacheData"] as? NSMutableData else {
                 return "CacheData is missing from MobileGestalt."
             }
-            guard validated_ipados_patch_location(in: cache_data) != nil else {
+            guard let patch = validated_ipados_patch_location(in: cache_data) else {
                 return "DeviceClassNumber location could not be uniquely validated for this device/iOS version. The iPadOS Mode binary patch remains disabled."
+            }
+            guard let value = patch.readValue(from: cache_data), value == 1 || value == 3 else {
+                return "DeviceClassNumber is not an expected iPhone/iPad value. Refusing to patch."
             }
             if UIDevice.current.systemVersion == "27.0.1" {
                 let backup = URL(fileURLWithPath: AppPaths.backups).appendingPathComponent("SavedGestalt.plist")
@@ -235,14 +238,19 @@ let all_tweaks: [mg_tweak] = [
                       let savedPlist = try? PropertyListSerialization.propertyList(from: savedData, format: nil),
                       let savedDict = savedPlist as? [String: Any],
                       let savedCacheData = savedDict["CacheData"] as? Data,
-                      savedCacheData.count == cache_data.length else {
+                      savedCacheData.count == cache_data.length,
+                      let original = validated_ipados_patch_location(in: NSMutableData(data: savedCacheData)),
+                      original.readValue(from: NSMutableData(data: savedCacheData)) == 1 else {
                     return "The original MobileGestalt backup is missing or does not match this CacheData layout. iPadOS Mode is disabled until an original backup is available."
                 }
             }
             return nil
         },
         r: { dict in
-            guard let cache_extra = dict["CacheExtra"] as? NSMutableDictionary else { return false }
+            guard let cache_extra = dict["CacheExtra"] as? NSMutableDictionary,
+                  let cache_data = dict["CacheData"] as? NSMutableData,
+                  let patch = validated_ipados_patch_location(in: cache_data),
+                  patch.readValue(from: cache_data) == 3 else { return false }
             let values: [String: Int] = [
                 "mG0AnH/Vy1veoqoLRAIgTA": 1,
                 "UCG5MkVahJxG1YULbbd5Bg": 1,
@@ -433,6 +441,27 @@ private enum IPadOSPatchLocation {
         }
     }
 
+    var byteOffset: Int {
+        switch self {
+        case .integer(let offset): return offset
+        case .nibble(let hexOffset): return hexOffset / 2
+        }
+    }
+
+    func readValue(from data: NSMutableData) -> UInt8? {
+        guard byteOffset >= 0, byteOffset < data.length else { return nil }
+        let first = data.bytes.load(fromByteOffset: byteOffset, as: UInt8.self)
+        switch self {
+        case .integer(let offset):
+            guard offset + MemoryLayout<UInt64>.size <= data.length else { return nil }
+            let bytes = [UInt8](data as Data)
+            guard bytes[(offset + 1)..<(offset + 8)].allSatisfy({ $0 == 0 }) else { return nil }
+            return first
+        case .nibble(let hexOffset):
+            return hexOffset.isMultiple(of: 2) ? first >> 4 : first & 0x0f
+        }
+    }
+
     func apply(_ value: UInt8, to data: NSMutableData) {
         switch self {
         case .integer(let byteOffset):
@@ -509,7 +538,58 @@ func ipados_mode_patch_status(in data: NSMutableData) -> String {
     guard let location = validated_ipados_patch_location(in: data) else {
         return "No uniquely validated DeviceClassNumber location. Do not apply iPadOS Mode."
     }
-    return "Experimental candidate: \(location.description). Not verified on a physical iPhone 17 running iOS 27.0.1."
+    let value = location.readValue(from: data).map(String.init) ?? "unreadable"
+    return "Experimental candidate: \(location.description); on-disk class value \(value) (1=iPhone, 3=iPad). iOS activation is not verified."
+}
+
+private let ipadosCacheExtraKeys = [
+    "mG0AnH/Vy1veoqoLRAIgTA", "UCG5MkVahJxG1YULbbd5Bg",
+    "ZYqko/XM5zD3XBfN5RmaXA", "nVh/gwNpy7Jv1NOk00CMrw",
+    "uKc7FPnEO++lVhHWHFlGbQ"
+]
+
+private func ipadosFlagCount(in dict: [String: Any]) -> Int {
+    guard let extra = dict["CacheExtra"] as? [String: Any] else { return 0 }
+    return ipadosCacheExtraKeys.filter { (extra[$0] as? Int) == 1 }.count
+}
+
+private enum MGApplyVerificationError: LocalizedError {
+    case readbackMismatch
+    case invalidWrittenPlist
+    case incorrectIPadClass(expected: UInt8, actual: UInt8?)
+    case missingIPadFlags(Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .readbackMismatch:
+            return "MobileGestalt was written but the on-disk content differs from the staged data. Do not respring or reboot. Check the original backup."
+        case .invalidWrittenPlist:
+            return "MobileGestalt read-back is not a valid property list. Do not respring or reboot."
+        case .incorrectIPadClass(let expected, let actual):
+            return "DeviceClassNumber read-back mismatch (expected \(expected), found \(actual.map(String.init) ?? "unavailable")). Do not respring or reboot."
+        case .missingIPadFlags(let count):
+            return "Only \(count) of 5 iPadOS flags survived the write. Do not respring or reboot."
+        }
+    }
+}
+
+/// Verify the file on disk, independently of the success reported by write(2).
+/// This still does NOT prove SpringBoard will accept the changed device class.
+private func verifyAppliedGestalt(_ staged: Data, requestedIPadOS: Bool) throws -> String {
+    let onDisk = try Data(contentsOf: URL(fileURLWithPath: TweakPaths.gestalt))
+    guard onDisk == staged else { throw MGApplyVerificationError.readbackMismatch }
+    guard let raw = try PropertyListSerialization.propertyList(from: onDisk, format: nil) as? [String: Any] else {
+        throw MGApplyVerificationError.invalidWrittenPlist
+    }
+
+    guard requestedIPadOS else { return "MobileGestalt bytes match the staged file." }
+    guard let cache = raw["CacheData"] as? Data else { throw MGApplyVerificationError.invalidWrittenPlist }
+    let mutable = NSMutableData(data: cache)
+    let actual = validated_ipados_patch_location(in: mutable)?.readValue(from: mutable)
+    guard actual == 3 else { throw MGApplyVerificationError.incorrectIPadClass(expected: 3, actual: actual) }
+    let flags = ipadosFlagCount(in: raw)
+    guard flags == ipadosCacheExtraKeys.count else { throw MGApplyVerificationError.missingIPadFlags(flags) }
+    return "File read-back verified DeviceClassNumber=3 and all 5 iPadOS flags. iOS UI activation is still unverified."
 }
 
 let state = AppState.shared
@@ -646,6 +726,10 @@ func mg_load() {
 
 func mg_apply() {
     do {
+        let requestedIPadOS = tweak("Enable iPadOS Mode")?.is_on(in: mg_dict_now) == true
+        if requestedIPadOS, let reason = tweak("Enable iPadOS Mode")?.can_apply(mg_dict_now) {
+            throw NSError(domain: "mond.iPadOS", code: 1, userInfo: [NSLocalizedDescriptionKey: reason])
+        }
         let cache_extra = mg_dict_now["CacheExtra"] as? NSMutableDictionary ?? NSMutableDictionary()
         if !product_type.isEmpty {
             cache_extra["h9jDsbgj7xIVeIQ8S3/X3Q"] = product_type
@@ -660,16 +744,24 @@ func mg_apply() {
         let data = try PropertyListSerialization.data(fromPropertyList: mg_dict_now, format: .xml, options: 0)
 
         try mg_write(data)
+        let verified = try verifyAppliedGestalt(data, requestedIPadOS: requestedIPadOS)
         mg_reload()
         enable_device_name = false
 
-        print("(mg) successfully overwrote mobilegestalt!")
-        Alertinator.shared.alert(title: "Successfully applied Gestalt tweaks!", body: "Respring your device for changes to take effect. Note that some tweaks may require a reboot for them to apply properly.", actionLabel: "Respring", action: {
-            state.respring()
-        })
+        print("(mg) applied MobileGestalt: \(verified)")
+        if requestedIPadOS {
+            Alertinator.shared.alert(
+                title: "iPadOS patch written and verified",
+                body: "\(verified) This only confirms the saved file. It does NOT prove that iOS 27.0.1 will accept the change after respring or reboot. Before testing, keep a separate, recoverable device backup and an external copy of your original MobileGestalt."
+            )
+        } else {
+            Alertinator.shared.alert(title: "Successfully applied Gestalt tweaks!", body: "\(verified) Respring your device for changes to take effect. Note that some tweaks may require a reboot.", actionLabel: "Respring", action: {
+                state.respring()
+            })
+        }
     } catch {
         print("(mg) failed to apply mobilegestalt: \(error)")
-        Alertinator.shared.alert(title: "Failed to apply MobileGestalt!", body: "Restart the app and try again. Check logs for more detailed information.")
+        Alertinator.shared.alert(title: "Failed to apply MobileGestalt!", body: "\(error.localizedDescription) Check logs and the read-only diagnostic before any respring or reboot.")
     }
 }
 
@@ -678,13 +770,14 @@ func mg_revert() {
         let backup_url = URL(fileURLWithPath: AppPaths.backups).appendingPathComponent("SavedGestalt.plist")
         let backup_data = try Data(contentsOf: backup_url)
         try mg_write(backup_data)
+        let verified = try verifyAppliedGestalt(backup_data, requestedIPadOS: false)
         mg_reload()
 
-        print("(mg) successfully reverted mobilegestalt!)")
-        Alertinator.shared.alert(title: "Successfully reverted Gestalt tweaks!", body: "Reboot your device for changes to take effect.")
+        print("(mg) reverted MobileGestalt: \(verified)")
+        Alertinator.shared.alert(title: "Original MobileGestalt restored on disk", body: "\(verified) This does not guarantee recovery if iOS has already entered a boot loop. Confirm the current diagnostic before any restart.")
     } catch {
         print("(mg) failed to revert mobilegestalt: \(error)")
-        Alertinator.shared.alert(title: "Failed to revert MobileGestalt!", body: "Check logs for error information.")
+        Alertinator.shared.alert(title: "Failed to revert MobileGestalt!", body: "\(error.localizedDescription) Do not reboot until the on-disk file is verified. Check logs for error information.")
     }
 }
 
@@ -699,7 +792,22 @@ func mg_reload() {
 func mg_read_only_report() -> [String] {
     let path = URL(fileURLWithPath: TweakPaths.gestalt)
     var lines = ["MobileGestalt read-only diagnostic"]
+    let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+    let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+    lines.append("mond version: \(version) (\(build))")
     lines.append("iOS: \(UIDevice.current.systemVersion); device: \(machine_name())")
+    lines.append("Write method selected: \(UserDefaults.standard.bool(forKey: "atomic_write") ? "in-place with fsync" : "file replacement")")
+
+    // O_RDWR does not write anything. Its result only tests whether opening
+    // the existing file for writing is allowed, not whether writing is safe.
+    let writeHandle = path.path.withCString { open($0, O_RDWR | O_CLOEXEC | O_NOFOLLOW) }
+    if writeHandle >= 0 {
+        close(writeHandle)
+        lines.append("Non-mutating O_RDWR open: succeeded (actual write not tested)")
+    } else {
+        let code = errno
+        lines.append("Non-mutating O_RDWR open: failed (errno \(code): \(String(cString: strerror(code))))")
+    }
 
     do {
         let data = try Data(contentsOf: path)
@@ -723,6 +831,7 @@ func mg_read_only_report() -> [String] {
         if let cacheData = dict["CacheData"] as? NSMutableData {
             lines.append("iPadOS Mode: \(ipados_mode_patch_status(in: cacheData))")
         }
+        lines.append("iPadOS CacheExtra flags on disk: \(ipadosFlagCount(in: dict))/5")
         if let subtype = artwork?["ArtworkDeviceSubType"] as? Int {
             lines.append("Current artwork subtype: \(subtype)")
         } else {
@@ -739,6 +848,15 @@ func mg_read_only_report() -> [String] {
                 lines.append("Saved original subtype: \(subtype)")
             }
             lines.append("Backup readable: yes")
+            if let originalCache = savedDict["CacheData"] as? Data {
+                let mutable = NSMutableData(data: originalCache)
+                if let originalPatch = validated_ipados_patch_location(in: mutable) {
+                    let originalValue = originalPatch.readValue(from: mutable).map(String.init) ?? "unreadable"
+                    lines.append("Saved original DeviceClassNumber: \(originalValue) (expected 1 for iPhone)")
+                } else {
+                    lines.append("Saved original DeviceClassNumber: location unavailable")
+                }
+            }
         } else {
             lines.append("Backup readable: no")
         }

@@ -2,6 +2,16 @@
 
 All entries describe actual source changes. The installed version and build number are shown in the app's Settings screen.
 
+## 3.0.5 (6) - 2026-11-08
+
+- Compare the iPadOS Mode CacheData nibble patch and five capability keys against the upstream Nugget implementation; retain the unique validated iOS 27.0.1 locator and high-risk confirmation.
+- Require the iOS 27.0.1 saved original to decode to iPhone DeviceClassNumber 1 before enabling the tweak; the backup is no longer accepted on CacheData length alone.
+- Make the iPadOS toggle reflect both DeviceClassNumber 3 and all five capability flags, avoiding a false enabled state when only the flags are set.
+- Extend the read-only diagnostics with the installed build, on-disk class value, 0-5 iPadOS flag count, original backup class value, write method, and a **non-mutating** `O_RDWR` open check (not proof an actual write will work).
+- Verify the complete file after writing or reverting. An iPadOS Mode write is only reported as staged successfully if the read-back has DeviceClassNumber 3 and all five flags; otherwise show a specific error and warn against restarting.
+- Add native Files export of the saved original MobileGestalt `.plist` for offline backup. This does not make the device recoverable from every boot loop.
+- After a verified experimental iPadOS write, refrain from offering an automatic respring. Activation on actual iPhone 17 / iOS 27.0.1 remains unverified until a device test.
+
 ## 3.0.4 (5) - 2026-11-08
 
 - Replace the silent MobileGestalt Copy Diagnostic action with a shared export control that verifies clipboard contents and displays a visible copy result.

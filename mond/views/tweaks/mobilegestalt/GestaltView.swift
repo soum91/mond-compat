@@ -7,6 +7,26 @@
 
 import SwiftUI
 import PartyUI
+import UniformTypeIdentifiers
+
+private struct GestaltBackupDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.propertyList] }
+
+    var data: Data
+
+    init(data: Data) { self.data = data }
+
+    init(configuration: ReadConfiguration) throws {
+        guard let data = configuration.file.regularFileContents else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        self.data = data
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
+}
 
 private extension mg_tweak.InfoType {
     var party_info_type: ToggleInfoType {
@@ -57,6 +77,9 @@ struct GestaltView: View {
     @State private var checkingReadOnlyAccess = false
     @State private var readOnlyReport: [String] = []
     @State private var confirmExperimentalIPadOS = false
+    @State private var showOriginalBackupExporter = false
+    @State private var originalBackupDocument: GestaltBackupDocument?
+    @State private var originalBackupFeedback: String?
 
     private var originalDeviceLabel: String {
         switch machine_name() {
@@ -128,6 +151,45 @@ struct GestaltView: View {
                     Label("Read-Only Diagnostic", systemImage: "checkmark.shield")
                 } footer: {
                     Text("Reads the current cache and checks its structure. Does not modify MobileGestalt, grant write access, or guarantee that tweaks can be safely applied.")
+                }
+
+                Section {
+                    Button {
+                        do {
+                            let url = URL(fileURLWithPath: AppPaths.backups).appendingPathComponent("SavedGestalt.plist")
+                            let original = try Data(contentsOf: url)
+                            _ = try PropertyListSerialization.propertyList(from: original, format: nil)
+                            originalBackupDocument = GestaltBackupDocument(data: original)
+                            showOriginalBackupExporter = true
+                            originalBackupFeedback = nil
+                        } catch {
+                            originalBackupFeedback = "Cannot export saved original: \(error.localizedDescription)"
+                        }
+                    } label: {
+                        Label("Export Original MobileGestalt (.plist)", systemImage: "square.and.arrow.up.on.square")
+                    }
+                    .fileExporter(
+                        isPresented: $showOriginalBackupExporter,
+                        document: originalBackupDocument,
+                        contentType: .propertyList,
+                        defaultFilename: "Original-MobileGestalt"
+                    ) { result in
+                        switch result {
+                        case .success:
+                            originalBackupFeedback = "Original MobileGestalt exported. Keep this file private and store a copy outside the iPhone."
+                        case .failure(let error):
+                            originalBackupFeedback = "Export failed: \(error.localizedDescription)"
+                        }
+                    }
+                    if let originalBackupFeedback {
+                        Text(originalBackupFeedback)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Label("iPadOS Recovery Preparation", systemImage: "externaldrive")
+                } footer: {
+                    Text("Export the original before attempting iPadOS Mode. A .plist backup alone cannot guarantee recovery from an iOS boot loop; make a separate computer/device backup too. Never share the original publicly because it may contain device information.")
                 }
 
                 Section {
