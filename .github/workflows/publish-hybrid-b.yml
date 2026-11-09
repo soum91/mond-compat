@@ -1,0 +1,43 @@
+name: Publish Hybrid B experimental IPA
+
+on:
+  push:
+    branches:
+      - research/ipados-statusbar
+    paths:
+      - '.github/workflows/publish-hybrid-b.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish-experimental-ipa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the previously successful research build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh run download 42560599257 --name mond-hybrid-research-unsigned-ipa --dir artifact
+          test -s artifact/mond-hybrid-research.ipa
+
+      - name: Publish isolated pre-release without touching development
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          RELEASE_TAG="hybrid-b-3.0.7"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" artifact/mond-hybrid-research.ipa --clobber
+          else
+            gh release create "$RELEASE_TAG" artifact/mond-hybrid-research.ipa \
+              --target 1b78e6bc2a24837add217f9e626e7c7249330aec \
+              --title "Mond 3.0.7 (8) Hybrid B experiment" \
+              --prerelease \
+              --notes "UNVERIFIED ON DEVICE. Experimental iPhone18,3/iOS 27.0.1 build. Enables an opt-in three-key SpringBoard windowing test with iPhone device class and existing iPad flags, read-back diagnostics, backups, export and rollback. Risk of instability or boot loop. This release does not replace the working development build. Unsigned IPA: sign with your certificate. Source commit 1b78e6bc2a24837add217f9e626e7c7249330aec."
+          fi
