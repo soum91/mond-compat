@@ -80,6 +80,12 @@ struct GestaltView: View {
     @State private var showOriginalBackupExporter = false
     @State private var originalBackupDocument: GestaltBackupDocument?
     @State private var originalBackupFeedback: String?
+    @State private var showWorkingIPadBackupExporter = false
+    @State private var workingIPadBackupDocument: GestaltBackupDocument?
+    @State private var hybridStatus = "Checking current layout..."
+    @State private var hybridFeedback: String?
+    @State private var confirmHybridTest = false
+    @State private var confirmHybridRestore = false
 
     private var originalDeviceLabel: String {
         switch machine_name() {
@@ -94,6 +100,20 @@ struct GestaltView: View {
     private func applySelectedTweaks() {
         mg_apply_ui_state(selected_st, enable_device_name, mg_device_name, product_type)
         mg_apply()
+        tweak_version += 1
+        hybridStatus = mg_hybrid_status()
+    }
+
+    private func runHybridOperation(_ operation: () throws -> String) {
+        do {
+            let result = try operation()
+            hybridFeedback = result
+            Alertinator.shared.alert(title: "Hybrid iPadOS experiment", body: result)
+        } catch {
+            hybridFeedback = "Failed: \(error.localizedDescription)"
+            Alertinator.shared.alert(title: "Hybrid experiment not applied", body: "\(error.localizedDescription) Do not restart if an on-disk verification failed. Check the diagnostics.")
+        }
+        hybridStatus = mg_hybrid_status()
         tweak_version += 1
     }
 
@@ -192,6 +212,85 @@ struct GestaltView: View {
                     Text("Export the original before attempting iPadOS Mode. A .plist backup alone cannot guarantee recovery from an iOS boot loop; make a separate computer/device backup too. Never share the original publicly because it may contain device information.")
                 }
 
+                if machine_name() == "iPhone18,3" && UIDevice.current.systemVersion == "27.0.1" {
+                    Section {
+                        Text(hybridStatus)
+                            .font(.footnote)
+                            .textSelection(.enabled)
+
+                        Button {
+                            runHybridOperation { try mg_hybrid_capture_working_snapshot() }
+                        } label: {
+                            Label("Save Current Working iPadOS Layout", systemImage: "externaldrive")
+                        }
+
+                        Button {
+                            do {
+                                let snapshot = try mg_hybrid_working_snapshot()
+                                workingIPadBackupDocument = GestaltBackupDocument(data: snapshot)
+                                showWorkingIPadBackupExporter = true
+                            } catch {
+                                hybridFeedback = "Cannot export working snapshot: \(error.localizedDescription)"
+                            }
+                        } label: {
+                            Label("Export Working Layout to Files", systemImage: "square.and.arrow.up")
+                        }
+                        .fileExporter(
+                            isPresented: $showWorkingIPadBackupExporter,
+                            document: workingIPadBackupDocument,
+                            contentType: .propertyList,
+                            defaultFilename: "Working-iPadOS-Before-Hybrid"
+                        ) { result in
+                            switch result {
+                            case .success:
+                                hybridFeedback = "Working iPadOS layout exported. Keep the file private and outside this app."
+                            case .failure(let error):
+                                hybridFeedback = "Working snapshot export failed: \(error.localizedDescription)"
+                            }
+                        }
+
+                        Button("Test Hybrid: iPhone Layout + iPad Flags") {
+                            confirmHybridTest = true
+                        }
+                        .confirmationDialog(
+                            "Experimental hybrid layout",
+                            isPresented: $confirmHybridTest,
+                            titleVisibility: .visible
+                        ) {
+                            Button("Write Hybrid Test", role: .destructive) {
+                                runHybridOperation { try mg_hybrid_apply_test() }
+                            }
+                        } message: {
+                            Text("This writes DeviceClassNumber=1 but keeps all five iPadOS flags. Windowed apps may disappear, the UI may become unstable, and the device could bootloop. Capture and export the working iPadOS file and keep a computer backup first. This is NOT a verified layout fix.")
+                        }
+
+                        Button("Restore Working iPadOS Layout") {
+                            confirmHybridRestore = true
+                        }
+                        .confirmationDialog(
+                            "Restore previous iPadOS layout",
+                            isPresented: $confirmHybridRestore,
+                            titleVisibility: .visible
+                        ) {
+                            Button("Restore Exact Snapshot", role: .destructive) {
+                                runHybridOperation { try mg_hybrid_restore_working() }
+                            }
+                        } message: {
+                            Text("Restore the exact class-3, five-flag MobileGestalt saved before the hybrid experiment. Any MobileGestalt changes made after the snapshot will be lost. This does not guarantee recovery from a bootloop.")
+                        }
+
+                        if let hybridFeedback {
+                            Text(hybridFeedback)
+                                .font(.footnote)
+                                .textSelection(.enabled)
+                        }
+                    } header: {
+                        Label("Hybrid Layout Experiment", systemImage: "rectangle.on.rectangle")
+                    } footer: {
+                        Text("Test A only: changes the on-disk device class while preserving all five flags. Save and export the current working iPadOS layout first. After a successful read-back, respring or reboot only if you accept the bootloop risk and have a separate recoverable backup.")
+                    }
+                }
+
                 Section {
                     Button {
                         if tweak("Enable iPadOS Mode")?.is_on(in: mg_dict_now) == true {
@@ -206,6 +305,7 @@ struct GestaltView: View {
                     Button {
                         mg_revert()
                         tweak_version += 1
+                        hybridStatus = mg_hybrid_status()
                     } label: {
                         Text("Revert Tweaks")
                     }
@@ -384,6 +484,7 @@ struct GestaltView: View {
                 enable_device_name = s.1
                 mg_device_name = s.2
                 product_type = s.3
+                hybridStatus = mg_hybrid_status()
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

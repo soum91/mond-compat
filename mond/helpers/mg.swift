@@ -553,6 +553,165 @@ private func ipadosFlagCount(in dict: [String: Any]) -> Int {
     return ipadosCacheExtraKeys.filter { (extra[$0] as? Int) == 1 }.count
 }
 
+// Keep hybrid mode separate from the normal iPadOS toggle. This experiment
+// changes only DeviceClassNumber; all five existing Medusa/iPad capability
+// flags remain untouched. It does not assume that iPad multitasking will work
+// once iOS sees an iPhone device class.
+private let hybridWorkingSnapshotName = "WorkingIPadGestaltBeforeHybrid.plist"
+
+private var hybridWorkingSnapshotURL: URL {
+    URL(fileURLWithPath: AppPaths.backups).appendingPathComponent(hybridWorkingSnapshotName)
+}
+
+private enum MGHybridError: LocalizedError {
+    case unsupportedDevice
+    case originalBackupInvalid
+    case currentLayoutInvalid
+    case workingSnapshotConflict
+    case workingSnapshotMissing
+    case notHybrid
+
+    var errorDescription: String? {
+        switch self {
+        case .unsupportedDevice:
+            return "Hybrid mode is only validated for the experiment's iPhone18,3 / iOS 27.0.1 CacheData layout. No changes were made."
+        case .originalBackupInvalid:
+            return "The saved original iPhone-class MobileGestalt is missing or mismatched. No changes were made."
+        case .currentLayoutInvalid:
+            return "The current on-disk file is not the verified iPadOS state (class 3 with 5/5 flags). No changes were made."
+        case .workingSnapshotConflict:
+            return "An older working iPadOS snapshot differs from the current configuration. Export and preserve it before replacing any backup. No changes were made."
+        case .workingSnapshotMissing:
+            return "No validated working iPadOS snapshot was found. Restore is unavailable."
+        case .notHybrid:
+            return "The on-disk file is not the hybrid test state (class 1 with 5/5 flags). Restore was not attempted."
+        }
+    }
+}
+
+private func hybridSupportedDevice() -> Bool {
+    machine_name() == "iPhone18,3" && UIDevice.current.systemVersion == "27.0.1"
+}
+
+private func hybridPlist(_ data: Data) throws -> NSMutableDictionary {
+    guard let parsed = try PropertyListSerialization.propertyList(from: data, format: nil) as? NSDictionary else {
+        throw MGHybridError.currentLayoutInvalid
+    }
+    return NSMutableDictionary(dictionary: parsed)
+}
+
+private func hybridClassAndFlags(_ data: Data) throws -> (UInt8, Int, Int) {
+    let dict = try hybridPlist(data)
+    guard let cache = dict["CacheData"] as? Data else { throw MGHybridError.currentLayoutInvalid }
+    let mutable = NSMutableData(data: cache)
+    guard let position = validated_ipados_patch_location(in: mutable),
+          let value = position.readValue(from: mutable) else { throw MGHybridError.currentLayoutInvalid }
+    let extra = dict["CacheExtra"] as? NSDictionary
+    let flagCount = ipadosCacheExtraKeys.filter { (extra?[$0] as? Int) == 1 }.count
+    return (value, flagCount, cache.count)
+}
+
+private func validateHybridOriginalBackup(matching cacheLength: Int) throws {
+    let url = URL(fileURLWithPath: AppPaths.backups).appendingPathComponent("SavedGestalt.plist")
+    guard let data = try? Data(contentsOf: url),
+          let original = try? hybridClassAndFlags(data),
+          original.0 == 1, original.2 == cacheLength else {
+        throw MGHybridError.originalBackupInvalid
+    }
+}
+
+/// A read-only status. This also covers unexpected intermediate states rather
+/// than displaying a misleading "ready" indicator based on UI toggle state.
+func mg_hybrid_status() -> String {
+    guard hybridSupportedDevice() else { return "Unsupported device/iOS for this experiment" }
+    do {
+        let data = try Data(contentsOf: URL(fileURLWithPath: TweakPaths.gestalt))
+        let (deviceClass, flags, cacheLength) = try hybridClassAndFlags(data)
+        try validateHybridOriginalBackup(matching: cacheLength)
+        let state: String
+        switch (deviceClass, flags) {
+        case (3, 5): state = "Working iPadOS layout (class 3, 5/5 flags)"
+        case (1, 5): state = "Hybrid test on disk (class 1, 5/5 flags)"
+        default: state = "Other configuration (class \(deviceClass), \(flags)/5 flags)"
+        }
+        let snapshot = (try? mg_hybrid_working_snapshot()) == nil ? "missing" : "ready"
+        return "\(state); return snapshot: \(snapshot)"
+    } catch {
+        return "Cannot validate hybrid state: \(error.localizedDescription)"
+    }
+}
+
+/// Only a validated class-3/5-flag snapshot qualifies as a known-working
+/// return target. Never use the original class-1 file for this operation.
+func mg_hybrid_working_snapshot() throws -> Data {
+    guard hybridSupportedDevice() else { throw MGHybridError.unsupportedDevice }
+    guard let data = try? Data(contentsOf: hybridWorkingSnapshotURL),
+          let snapshot = try? hybridClassAndFlags(data),
+          snapshot.0 == 3, snapshot.1 == 5 else { throw MGHybridError.workingSnapshotMissing }
+    try validateHybridOriginalBackup(matching: snapshot.2)
+    return data
+}
+
+/// Capture, without writing MobileGestalt, the current working iPadOS layout.
+/// A pre-existing different snapshot is deliberately never overwritten.
+@discardableResult
+func mg_hybrid_capture_working_snapshot() throws -> String {
+    guard hybridSupportedDevice() else { throw MGHybridError.unsupportedDevice }
+    let current = try Data(contentsOf: URL(fileURLWithPath: TweakPaths.gestalt))
+    let (deviceClass, flags, cacheLength) = try hybridClassAndFlags(current)
+    guard deviceClass == 3 && flags == 5 else { throw MGHybridError.currentLayoutInvalid }
+    try validateHybridOriginalBackup(matching: cacheLength)
+
+    if FileManager.default.fileExists(atPath: hybridWorkingSnapshotURL.path) {
+        let existing = try mg_hybrid_working_snapshot()
+        guard existing == current else { throw MGHybridError.workingSnapshotConflict }
+        return "The working iPadOS snapshot already exists and matches the current file."
+    }
+    try current.write(to: hybridWorkingSnapshotURL, options: .atomic)
+    let saved = try mg_hybrid_working_snapshot()
+    guard saved == current else { throw MGHybridError.workingSnapshotConflict }
+    return "Saved and verified the complete working iPadOS MobileGestalt in mond's private backup directory. Export it before testing."
+}
+
+/// Experimental A/B test: change the class to iPhone while deliberately
+/// preserving all five iPadOS flags. Real UI activation can only be judged
+/// after the user tests the phone; a successful write is not that proof.
+func mg_hybrid_apply_test() throws -> String {
+    try mg_hybrid_capture_working_snapshot()
+    let current = try Data(contentsOf: URL(fileURLWithPath: TweakPaths.gestalt))
+    let dict = try hybridPlist(current)
+    guard let originalCache = dict["CacheData"] as? Data else { throw MGHybridError.currentLayoutInvalid }
+    let cache = NSMutableData(data: originalCache)
+    guard let patch = validated_ipados_patch_location(in: cache),
+          patch.readValue(from: cache) == 3 else { throw MGHybridError.currentLayoutInvalid }
+    patch.apply(1, to: cache)
+    dict["CacheData"] = cache
+
+    let staged = try PropertyListSerialization.data(fromPropertyList: dict, format: .xml, options: 0)
+    try mg_write(staged)
+    let verified = try verifyAppliedGestalt(staged, requestedIPadOS: false)
+    let (writtenClass, writtenFlags, _) = try hybridClassAndFlags(staged)
+    guard writtenClass == 1, writtenFlags == 5 else { throw MGHybridError.currentLayoutInvalid }
+    mg_reload()
+    print("(mg) hybrid test written: class 1, 5/5 iPadOS flags; \(verified)")
+    return "\(verified) Hybrid test is ON DISK: class 1, 5/5 flags. It is not verified that iPad windows remain available after a restart. Your previously working iPadOS file is saved for restoration."
+}
+
+/// Restore the complete pre-test class-3 configuration, not a reconstructed
+/// guess. Reject other layouts to avoid overwriting unrelated later tweaks.
+func mg_hybrid_restore_working() throws -> String {
+    let working = try mg_hybrid_working_snapshot()
+    let current = try Data(contentsOf: URL(fileURLWithPath: TweakPaths.gestalt))
+    let (deviceClass, flags, _) = try hybridClassAndFlags(current)
+    guard deviceClass == 1 && flags == 5 else { throw MGHybridError.notHybrid }
+
+    try mg_write(working)
+    let verified = try verifyAppliedGestalt(working, requestedIPadOS: true)
+    mg_reload()
+    print("(mg) working iPadOS layout restored: \(verified)")
+    return "\(verified) The exact pre-test working iPadOS configuration is back on disk. UI activation still requires testing on the phone."
+}
+
 private enum MGApplyVerificationError: LocalizedError {
     case readbackMismatch
     case invalidWrittenPlist
@@ -832,6 +991,7 @@ func mg_read_only_report() -> [String] {
             lines.append("iPadOS Mode: \(ipados_mode_patch_status(in: cacheData))")
         }
         lines.append("iPadOS CacheExtra flags on disk: \(ipadosFlagCount(in: dict))/5")
+        lines.append("Hybrid layout test: \(mg_hybrid_status())")
         if let subtype = artwork?["ArtworkDeviceSubType"] as? Int {
             lines.append("Current artwork subtype: \(subtype)")
         } else {

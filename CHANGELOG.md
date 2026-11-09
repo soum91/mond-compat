@@ -2,6 +2,14 @@
 
 All entries describe actual source changes. The installed version and build number are shown in the app's Settings screen.
 
+## 3.0.6 (7) - 2026-11-09
+
+- Add a separately confirmed, opt-in **Hybrid Layout Experiment** for iPhone18,3 on iOS 27.0.1. It changes only the validated `DeviceClassNumber` value from 3 (iPad) to 1 (iPhone), retaining all five iPadOS capability flags for a controlled on-device A/B test. It does **not** claim that iPad windowing or iPhone Lock Screen layout will remain functional.
+- Capture the complete, previously working class-3, five-flag MobileGestalt in a private backup before the hybrid write. Refuse stale/conflicting snapshots, missing original iPhone backup, wrong hardware/firmware, invalid binary offsets, or unexpected on-disk flag states.
+- Add native Files export of the working iPadOS snapshot and a separate **Restore Working iPadOS Layout** action that writes back the exact saved pre-test file instead of guessing at a reverse patch.
+- Check complete on-disk read-back after either operation and show the hybrid state in the read-only diagnostic. Warn explicitly that write verification is not evidence of runtime UI compatibility or guaranteed recovery from a boot loop.
+- Preserve the working iPadOS toggle and its existing class-3 behavior unchanged. No test automatically resprings or reboots the phone.
+
 ## 3.0.5 (6) - 2026-11-08
 
 - Compare the iPadOS Mode CacheData nibble patch and five capability keys against the upstream Nugget implementation; retain the unique validated iOS 27.0.1 locator and high-risk confirmation.
