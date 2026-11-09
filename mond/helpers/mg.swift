@@ -712,6 +712,216 @@ func mg_hybrid_restore_working() throws -> String {
     return "\(verified) The exact pre-test working iPadOS configuration is back on disk. UI activation still requires testing on the phone."
 }
 
+// Separate, opt-in experiment based on three SpringBoard windowing preference
+// names found in the iOS 27.0.1 firmware. Their ability to retain iPad windows
+// when the device class is iPhone is NOT known. Do not auto-apply or reboot.
+private let windowingPreferencesDirectory = "/private/var/mobile/Library/Preferences"
+private let windowingPreferencesPath = "\(windowingPreferencesDirectory)/com.apple.springboard.plist"
+private let windowingBackupName = "SpringBoardPreferencesBeforeHybrid.plist"
+private let windowingKeys = [
+    "SBChamoisWindowingEnabled",
+    "SBMedusaMultitaskingEnabled",
+    "SBFlexibleWindowingPreviouslyEnabledAutomaticStageCreation"
+]
+
+private var windowingBackupURL: URL {
+    URL(fileURLWithPath: AppPaths.backups).appendingPathComponent(windowingBackupName)
+}
+
+private enum WindowingHybridError: LocalizedError {
+    case cannotGrant(Int64)
+    case preferencesUnavailable
+    case invalidPreferences
+    case snapshotConflict
+    case snapshotMissing
+    case readbackMismatch
+
+    var errorDescription: String? {
+        switch self {
+        case .cannotGrant(let code):
+            return "Could not obtain SpringBoard preferences access (grant result \(code)). MobileGestalt was not changed. Check the App Group and selected exploit method."
+        case .preferencesUnavailable:
+            return "Existing SpringBoard preferences could not be read. The experiment refuses to create a replacement system file."
+        case .invalidPreferences:
+            return "SpringBoard preferences are not a supported property-list dictionary. No test should be performed."
+        case .snapshotConflict:
+            return "A different SpringBoard snapshot already exists. Export and preserve it; the app will not overwrite your recovery backup."
+        case .snapshotMissing:
+            return "No valid pre-test SpringBoard preferences snapshot exists."
+        case .readbackMismatch:
+            return "SpringBoard preferences read-back differs from the staged file. Do NOT respring or reboot; inspect and restore both files."
+        }
+    }
+}
+
+private func withWindowingPreferencesAccess<T>(_ operation: () throws -> T) throws -> T {
+    guard hybridSupportedDevice() else { throw MGHybridError.unsupportedDevice }
+    let handle = grant_path(windowingPreferencesDirectory, create: false)
+    guard handle >= 0 else { throw WindowingHybridError.cannotGrant(handle) }
+    defer { release_path_grant(handle) }
+    return try operation()
+}
+
+private func windowingDictionary(_ data: Data) throws -> (NSMutableDictionary, PropertyListSerialization.PropertyListFormat) {
+    var format = PropertyListSerialization.PropertyListFormat.binary
+    guard let parsed = try PropertyListSerialization.propertyList(from: data, options: [], format: &format) as? NSDictionary else {
+        throw WindowingHybridError.invalidPreferences
+    }
+    return (NSMutableDictionary(dictionary: parsed), format)
+}
+
+private func readWindowingPreferences() throws -> Data {
+    guard let data = try? Data(contentsOf: URL(fileURLWithPath: windowingPreferencesPath)) else {
+        throw WindowingHybridError.preferencesUnavailable
+    }
+    _ = try windowingDictionary(data)
+    return data
+}
+
+private func windowingSnapshot() throws -> Data {
+    guard let saved = try? Data(contentsOf: windowingBackupURL) else {
+        throw WindowingHybridError.snapshotMissing
+    }
+    _ = try windowingDictionary(saved)
+    return saved
+}
+
+/// Return the untouched pre-test bytes for export via the native Files picker.
+func mg_windowing_prefs_snapshot() throws -> Data {
+    guard hybridSupportedDevice() else { throw MGHybridError.unsupportedDevice }
+    return try windowingSnapshot()
+}
+
+private func captureWindowingPreferences(_ current: Data) throws {
+    if FileManager.default.fileExists(atPath: windowingBackupURL.path) {
+        guard try windowingSnapshot() == current else { throw WindowingHybridError.snapshotConflict }
+        return
+    }
+    try current.write(to: windowingBackupURL, options: .atomic)
+    guard try windowingSnapshot() == current else { throw WindowingHybridError.snapshotConflict }
+}
+
+private func windowingPatchedPreferences(_ current: Data, restoreFrom backup: Data?) throws -> Data {
+    let (dict, format) = try windowingDictionary(current)
+    if let backup {
+        let (original, _) = try windowingDictionary(backup)
+        for key in windowingKeys {
+            if let savedValue = original[key] {
+                dict[key] = savedValue
+            } else {
+                dict.removeObject(forKey: key)
+            }
+        }
+    } else {
+        for key in windowingKeys { dict[key] = true }
+    }
+    return try PropertyListSerialization.data(fromPropertyList: dict, format: format, options: 0)
+}
+
+private func writeAndVerifyWindowingPreferences(_ data: Data) throws {
+    let current = try readWindowingPreferences()
+    if current != data {
+        try mg_write(data, to: windowingPreferencesPath)
+    }
+    guard try readWindowingPreferences() == data else { throw WindowingHybridError.readbackMismatch }
+}
+
+/// Non-mutating apart from acquiring/releasing a temporary sandbox grant.
+func mg_windowing_prefs_report() -> [String] {
+    let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+    let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+    var lines = [
+        "Mond SpringBoard hybrid diagnostic",
+        "App: \(version) (\(build)); device: \(machine_name()); iOS: \(UIDevice.current.systemVersion)",
+        "This is a disk-only check, not evidence of active Stage Manager."
+    ]
+    do {
+        let prefs = try withWindowingPreferencesAccess { try readWindowingPreferences() }
+        let (dict, _) = try windowingDictionary(prefs)
+        for key in windowingKeys {
+            let value = dict[key].map { String(describing: $0) } ?? "absent"
+            lines.append("\(key): \(value)")
+        }
+        lines.append("Preference snapshot: \((try? windowingSnapshot()) == nil ? "missing" : "available")")
+        lines.append("MobileGestalt: \(mg_hybrid_status())")
+    } catch {
+        lines.append("Read-only access failed: \(error.localizedDescription)")
+    }
+    lines.append("Restart behavior and preference-cache persistence have not been verified.")
+    return lines
+}
+
+/// Capture both known-working MobileGestalt and existing SpringBoard preferences
+/// without modifying either system file.
+func mg_windowing_capture_snapshots() throws -> String {
+    _ = try mg_hybrid_capture_working_snapshot()
+    try withWindowingPreferencesAccess {
+        try captureWindowingPreferences(readWindowingPreferences())
+    }
+    return "Captured and read-back verified separate working MobileGestalt and SpringBoard preferences backups. Export both to Files and retain an external device backup before testing."
+}
+
+/// Set all three on-disk SpringBoard windowing preferences, then apply the
+/// existing class-1 + five-flags test. A failure tries to restore the exact
+/// pre-test files; no respring, reboot or runtime process injection occurs.
+func mg_windowing_apply_test() throws -> String {
+    _ = try mg_windowing_capture_snapshots()
+    return try withWindowingPreferencesAccess {
+        let originalPreferences = try readWindowingPreferences()
+        let originalGestalt = try mg_hybrid_working_snapshot()
+        let stagedPreferences = try windowingPatchedPreferences(originalPreferences, restoreFrom: nil)
+        // Stop before touching MobileGestalt if SpringBoard cannot be written.
+        try writeAndVerifyWindowingPreferences(stagedPreferences)
+        do {
+            let gestaltResult = try mg_hybrid_apply_test()
+            return "\(gestaltResult) SpringBoard preference file read-back verified all three keys enabled. This is only a disk-level experiment; SpringBoard/cfprefsd may cache or replace these values. Do NOT assume windowing survives with class 1. No automatic restart was performed."
+        } catch {
+            var recovery: [String] = []
+            do {
+                try mg_write(originalGestalt)
+                _ = try verifyAppliedGestalt(originalGestalt, requestedIPadOS: true)
+                mg_reload()
+                recovery.append("MobileGestalt recovered")
+            } catch {
+                recovery.append("MobileGestalt recovery FAILED: \(error.localizedDescription)")
+            }
+            do {
+                try writeAndVerifyWindowingPreferences(originalPreferences)
+                recovery.append("SpringBoard preferences recovered")
+            } catch {
+                recovery.append("SpringBoard recovery FAILED: \(error.localizedDescription)")
+            }
+            throw NSError(domain: "MondWindowingHybrid", code: 1, userInfo: [NSLocalizedDescriptionKey:
+                "Hybrid write failed: \(error.localizedDescription). Recovery: \(recovery.joined(separator: "; ")). Do NOT reboot if either recovery failed."])
+        }
+    }
+}
+
+/// Restore only the three preference keys, preserving unrelated changes made
+/// since the snapshot. The exact original raw bytes remain exportable.
+func mg_windowing_restore_prefs_only() throws -> String {
+    return try withWindowingPreferencesAccess {
+        let backup = try windowingSnapshot()
+        let current = try readWindowingPreferences()
+        let restored = try windowingPatchedPreferences(current, restoreFrom: backup)
+        try writeAndVerifyWindowingPreferences(restored)
+        return "Restored the original presence and values of all three SpringBoard keys on disk, preserving other preferences. Confirm their values with the diagnostic. No respring or reboot was performed."
+    }
+}
+
+func mg_windowing_restore_both() throws -> String {
+    // Prefer putting the known-working class-3 state back first, so failure to
+    // access preferences does not block recovery of the main experiment.
+    let gestaltResult = try mg_hybrid_restore_working()
+    do {
+        let prefsResult = try mg_windowing_restore_prefs_only()
+        return "\(gestaltResult) \(prefsResult)"
+    } catch {
+        throw NSError(domain: "MondWindowingHybrid", code: 2, userInfo: [NSLocalizedDescriptionKey:
+            "Working MobileGestalt restored, but SpringBoard preferences still need separate recovery: \(error.localizedDescription). Use Restore SpringBoard Keys after checking access."])
+    }
+}
+
 private enum MGApplyVerificationError: LocalizedError {
     case readbackMismatch
     case invalidWrittenPlist
