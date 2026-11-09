@@ -6,3 +6,8 @@ Follow `AGENTS.md` in the repository root before editing, building, or releasing
 - A clipboard write is not a verified copy. Read it back and show visible success/failure feedback; provide independent Share and file-export fallbacks.
 - Include app/version, device/OS, useful return/error codes and redact sensitive data. Do not claim working Copy/Share/Save without a signed-device test and cross-app paste check.
 - Preserve the upstream license and attribution; add concrete, verified entries to `CHANGELOG.md` for releases, and keep app and catalog versions consistent.
+
+
+## Universal diagnostic export contract
+
+Every diagnostic/log report requires Copy with clipboard read-back verification where supported and visible success/failure, native Share, native Save as `.txt` with Files picker (`fileExporter` or `UIDocumentPickerViewController` on iOS), and selectable full text fallback. No silent clipboard-only buttons. Include app/version, device/OS, actionable return codes and redact secrets. Test cross-app paste, Share, Save on a signed device; otherwise mark unverified. Preserve existing policies.
