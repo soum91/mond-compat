@@ -26,7 +26,11 @@ if ! ipsw download ipsw \
   exit 1
 fi
 
-mapfile -t caches < <(find "${research_workspace}/caches" -type f \
+caches=()
+# GitHub macOS runners still ship Bash 3.2, which does not have mapfile.
+while IFS= read -r cache; do
+  caches+=("${cache}")
+done < <(find "${research_workspace}/caches" -type f \
   \( -name 'dyld_shared_cache_arm64e' -o -name 'dyld_shared_cache_arm64e_x1' \) -print | sort)
 if ((${#caches[@]} == 0)); then
   echo 'ERROR: No main arm64e shared cache found after extraction.' >> "${report}"
@@ -70,7 +74,7 @@ string_pattern='STUIStatusBar|SystemStatusUI|statusBarClass|StatusBarOverrides|S
 while IFS= read -r -d '' dylib; do
   label="${dylib#${research_workspace}/dylibs/}"
   echo "== ${label} ==" >> "${report}"
-  strings -a "${dylib}" | rg -i "${string_pattern}" | sort -u | head -150 >> "${report}" || true
+  strings -a "${dylib}" | grep -Ei "${string_pattern}" | sort -u | head -150 >> "${report}" || true
 done < <(find "${research_workspace}/dylibs" -type f -print0)
 
 {
