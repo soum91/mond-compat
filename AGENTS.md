@@ -16,3 +16,8 @@
 - Test all actions in a real signed/sideloaded iPhone build, not only in simulator or an Xcode preview. Check that copied text really pastes into a different app; test native Share and Files export. If hardware verification is unavailable, state it explicitly and do not claim Copy/Share works.
 - Show distinct statuses for no report, copy success, copy failure, and save failure. Never use an unacknowledged `UIPasteboard.general.string = ...` as the only reporting mechanism.
 - For SwiftUI projects, prefer a reusable shared diagnostic export component, and add the same contract to new repos' `AGENTS.md` so other coding agents follow it.
+
+
+## Public attribution and owner privacy
+
+Use `soum91` as the author, maintainer, developer, and publisher in all first-party metadata. Do not publish the owner's legal name, private email, or other personal identifiers in source, licenses, Sileo/FlareStore feeds, release assets, binary packages, generated docs, logs, or commits. Audit generated artifacts before publishing. Preserve legitimate third-party copyright notices. Existing bundle identifiers, app groups, and entitlements must not be silently changed, because doing so can break upgrades and stored data.
