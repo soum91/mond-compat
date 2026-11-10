@@ -1,5 +1,23 @@
 # Changelog
 
+## [development] - 2026-11-10
+
+## Verified changes since project start
+
+- Publish Mond Hybrid B 3.0.7 (8) prerelease in FlareStore JSON ([`6a18b9c0`](https://github.com/soum91/mond-compat/commit/6a18b9c0c01825c0bc052f46b18d3ab7d1235d76); `repo.json`)
+- feat: opt-in hybrid iPhone layout test with exact iPadOS snapshot restore ([`5afc0a77`](https://github.com/soum91/mond-compat/commit/5afc0a77539e8dfef2c90a40f52b0b035d34b6b1); `README.md`, `mond.xcodeproj/project.pbxproj`, `mond/helpers/mg.swift`, and 1 more)
+- feat: verify iPadOS CacheData write/readback and export original backup (3.0.5) ([`7460d88b`](https://github.com/soum91/mond-compat/commit/7460d88b073a5774adb6add421494b894596adb9); `README.md`, `mond.xcodeproj/project.pbxproj`, `mond/helpers/mg.swift`, and 1 more)
+- fix: verify diagnostic copy and provide native share and text export (3.0.4) ([`33f41cbc`](https://github.com/soum91/mond-compat/commit/33f41cbc0adb9a4e728973c26a2e98d0308c0c53); `mond.xcodeproj/project.pbxproj`, `mond/views/app/DiagnosticExport.swift`, `mond/views/app/LogView.swift`, and 1 more)
+- Update FlareStore catalog for compiled experimental iPadOS Mode 3.0.3 (4) ([`91f3d093`](https://github.com/soum91/mond-compat/commit/91f3d0939442161c5d7952d10dffd0a81abbdd6b); `repo.json`)
+- Add strictly validated experimental iPadOS Mode locator for iOS 27.0.1 (3.0.3) ([`339ca98a`](https://github.com/soum91/mond-compat/commit/339ca98a19e072b77cb38c2b55c350e774d02651); `README.md`, `mond.xcodeproj/project.pbxproj`, `mond/helpers/mg.swift`, and 1 more)
+- Publish FlareStore metadata for verified 3.0.2 (3) IPA ([`470b7e84`](https://github.com/soum91/mond-compat/commit/470b7e84e139dff64df42d7c2ff1790bef5b2b8b); `repo.json`)
+- Add read-only MobileGestalt diagnostics and safe iOS 27 subtype handling (3.0.2) ([`30a4a8ea`](https://github.com/soum91/mond-compat/commit/30a4a8ea495ba7115f5c0d2381dfa37e35ce2478); `README.md`, `mond.xcodeproj/project.pbxproj`, `mond/helpers/mg.swift`, and 1 more)
+- Synchronize FlareStore asset metadata with successful build ([`a3f34eee`](https://github.com/soum91/mond-compat/commit/a3f34eeed26c6d9e260e0c13f1c77eab973dfe05); `repo.json`)
+- Publish FlareStore source for mond-compat 3.0.1 ([`4129e38f`](https://github.com/soum91/mond-compat/commit/4129e38f4247687aba6ff878ecd13ea8a0949cc5); `.github/workflows/ios-release.yml`, `repo.json`)
+- Fix iOS 27.0.1 compatibility diagnostics and App Group handling ([`43e6501c`](https://github.com/soum91/mond-compat/commit/43e6501cba9396ed075fec18adf87bb168ba3314); `.github/workflows/ios-release.yml`, `LICENSE`, `README.md`, and 35 more)
+
+[Inspect exact code changes](https://github.com/soum91/mond-compat/commits/development)
+
 ## [hybrid-d-goldennugget-mobile-27.0.1] - 2026-11-09
 
 ## Verified changes since hybrid-c-goldennugget-27.0.1
