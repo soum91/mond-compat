@@ -1,5 +1,17 @@
 # Changelog
 
+## [hybrid-c-goldennugget-27.0.1] - 2026-11-09
+
+## Verified changes since hybrid-b-3.0.7
+
+- CI: publish validated GoldenNugget windowing template as experimental prerelease ([`7a62d51c`](https://github.com/soum91/mond-compat/commit/7a62d51c0a79d5636efe58a7b6faa0ec5e23f933); `.github/workflows/package-goldennugget-hybrid.yml`)
+- Research: add opt-in GoldenNugget external SpringBoard hybrid template ([`ca857231`](https://github.com/soum91/mond-compat/commit/ca857231e4e40008b898230d4f583342681444d5); `research/goldennugget-windowing/config.json`)
+- Research: add opt-in GoldenNugget external SpringBoard hybrid template ([`8d74a47e`](https://github.com/soum91/mond-compat/commit/8d74a47e9539989279861edbf327d61d6abbdc9b); `research/goldennugget-windowing/README.md`)
+- Research: add opt-in GoldenNugget external SpringBoard hybrid template ([`92541383`](https://github.com/soum91/mond-compat/commit/925413836b0ff2a8be53bf7f866df9b4c5f4df7e); `research/goldennugget-windowing/build_template.py`)
+- Publish successful Hybrid B IPA as isolated GitHub prerelease ([`7b7d0ef5`](https://github.com/soum91/mond-compat/commit/7b7d0ef51886a450cca40a36113716ac1cb881b2); `.github/workflows/publish-hybrid-b.yml`)
+
+[Inspect exact code changes](https://github.com/soum91/mond-compat/compare/hybrid-b-3.0.7...hybrid-c-goldennugget-27.0.1)
+
 ## [hybrid-b-3.0.7] - 2026-11-09
 
 ## Verified changes since development
