@@ -1,5 +1,29 @@
 # Changelog
 
+## [hybrid-b-3.0.7] - 2026-11-09
+
+## Verified changes since development
+
+- Research: build unsigned research IPA without main release ([`1b78e6bc`](https://github.com/soum91/mond-compat/commit/1b78e6bc2a24837add217f9e626e7c7249330aec); `.github/workflows/ipados-hybrid-research-build.yml`)
+- Research: record opt-in experiment and limits ([`b5b36e87`](https://github.com/soum91/mond-compat/commit/b5b36e873449377696bfe00e719e73b41d7141a5); `docs/ipados-hybrid-research.md`)
+- Research: bump research build to 3.0.7 (8) ([`edecac3b`](https://github.com/soum91/mond-compat/commit/edecac3b8641679ede2d3a94be61863332416fdc); `mond.xcodeproj/project.pbxproj`)
+- Research: expose separate hybrid B backup, test and restore UI ([`28e2a6b0`](https://github.com/soum91/mond-compat/commit/28e2a6b0fd86944dd9c252bb3e567bf779b3b1e9); `mond/views/tweaks/mobilegestalt/GestaltView.swift`)
+- Research: add reversible SpringBoard hybrid B experiment ([`74e11a8a`](https://github.com/soum91/mond-compat/commit/74e11a8ae0ef217ea590250436a7e3b161d81146); `mond/helpers/mg.swift`)
+- Record verified iOS 27 windowing preference candidates and rollback test criteria ([`418991d4`](https://github.com/soum91/mond-compat/commit/418991d4f37df2dfc339e3e8c89f5494c17057ff); `docs/ipados-hybrid-research.md`)
+- Verify exact iOS 27 Chamois and flexible windowing preference names ([`59c8eba1`](https://github.com/soum91/mond-compat/commit/59c8eba1498c93abd3d385457208f124b3827c40); `scripts/research/ipados-statusbar-offline.sh`)
+- Focus iOS 27 binary scan on Medusa, menu bar and device-idiom selectors ([`456a0bdb`](https://github.com/soum91/mond-compat/commit/456a0bdbad21096cd60e60ab258cfd3200e96301); `scripts/research/ipados-statusbar-offline.sh`)
+- Probe iOS 27 SpringBoard multitasking gates and SystemStatus archive symbols ([`d5839248`](https://github.com/soum91/mond-compat/commit/d58392489b5bfc39f68546839254815c57ee38a7); `scripts/research/ipados-statusbar-offline.sh`)
+- Clarify PosterBoard file access versus SpringBoard injection ([`95fb3612`](https://github.com/soum91/mond-compat/commit/95fb3612d0bf4a8b33688f10ce71b12a4c250563); `docs/ipados-hybrid-research.md`)
+- Document verified iOS 27 SystemStatusUI and SpringBoard firmware research ([`f94d3390`](https://github.com/soum91/mond-compat/commit/f94d339024c832e4fe8615cda0620fa955147922); `docs/ipados-hybrid-research.md`)
+- Fix iOS 27 framework path disambiguation in offline status bar scan ([`15cce119`](https://github.com/soum91/mond-compat/commit/15cce1199deb67dbcf531f1e954f6db50ebcd9ab); `scripts/research/ipados-statusbar-offline.sh`)
+- research: fix Bash 3.2 compatibility on macOS CI ([`289d9cee`](https://github.com/soum91/mond-compat/commit/289d9ceeaaabb7815487082919157c0df95587c5); `scripts/research/ipados-statusbar-offline.sh`)
+- docs: record TrollPad per-call idiom hooks and iOS 27 exploit boundary ([`6ef38a54`](https://github.com/soum91/mond-compat/commit/6ef38a547f36b09c7bfd716c43fb53fe2e638b46); `docs/ipados-hybrid-research.md`)
+- research: run read-only iPadOS status-bar firmware analysis in CI ([`9940cfde`](https://github.com/soum91/mond-compat/commit/9940cfde14e8ad247b7e85f2dac54f60ad88fa16); `.github/workflows/ipados-statusbar-research.yml`)
+- research: inspect iOS 27.0.1 status UI framework metadata offline ([`70897dc8`](https://github.com/soum91/mond-compat/commit/70897dc8f35398852392d5636fd67506a219fa17); `scripts/research/ipados-statusbar-offline.sh`)
+- docs: record physical iPhone hybrid A/B results ([`5356c680`](https://github.com/soum91/mond-compat/commit/5356c680b36e53bca4a1c54b22b85e9272eb3057); `docs/ipados-hybrid-research.md`)
+
+[Inspect exact code changes](https://github.com/soum91/mond-compat/compare/development...hybrid-b-3.0.7)
+
 ## [development] - 2026-11-09
 
 ## Verified changes since project start
