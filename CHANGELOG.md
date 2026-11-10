@@ -1,5 +1,14 @@
 # Changelog
 
+## [hybrid-d-goldennugget-mobile-27.0.1] - 2026-11-09
+
+## Verified changes since hybrid-c-goldennugget-27.0.1
+
+- Fix GoldenNugget Mobile release workflow shell closing fi ([`8ffe9ec3`](https://github.com/soum91/mond-compat/commit/8ffe9ec3dd2aef63b4aef1f5d33140e3954a3c30); `.github/workflows/package-goldennugget-mobile.yml`)
+- Hybrid D: add default-off GoldenNugget Mobile windowing template ([`0d317756`](https://github.com/soum91/mond-compat/commit/0d317756e7b03e77e390fe73973ef4cae2bafdf3); `.github/workflows/package-goldennugget-mobile.yml`, `research/goldennugget-mobile-windowing/README.md`, `research/goldennugget-mobile-windowing/build_template.py`, and 1 more)
+
+[Inspect exact code changes](https://github.com/soum91/mond-compat/compare/hybrid-c-goldennugget-27.0.1...hybrid-d-goldennugget-mobile-27.0.1)
+
 ## [hybrid-c-goldennugget-27.0.1] - 2026-11-09
 
 ## Verified changes since hybrid-b-3.0.7
